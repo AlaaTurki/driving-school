@@ -1,6 +1,7 @@
 package com.drivingschool.candidate;
 
 import com.drivingschool.candidate.dto.UpdateCandidateRequest;
+import com.drivingschool.candidate.dto.UpdateCandidateRolesRequest;
 import com.drivingschool.user.Role;
 import com.drivingschool.user.User;
 import org.junit.jupiter.api.Test;
@@ -35,6 +36,7 @@ class CandidateServiceTest {
         assertThat(result.id()).isEqualTo(id);
         assertThat(result.fullName()).isEqualTo("New Name");
         assertThat(result.email()).isEqualTo("candidate@example.com");
+        assertThat(result.roles()).containsExactly("CANDIDATE");
         assertThat(result.phone()).isEqualTo("+21698765432");
         assertThat(result.status()).isEqualTo(CandidateStatus.INACTIVE);
         assertThat(result.registeredAt()).isEqualTo(Instant.parse("2026-01-01T12:00:00Z"));
@@ -48,5 +50,22 @@ class CandidateServiceTest {
         assertThatThrownBy(() ->
                 service.update(id, new UpdateCandidateRequest("Candidate", "+21612345678", CandidateStatus.ACTIVE)))
                 .isInstanceOf(CandidateNotFoundException.class);
+    }
+
+    @Test
+    void updateRolesChangesCandidateUserRoles() {
+        var id = UUID.randomUUID();
+        var user = spy(new User("candidate@example.com", "encoded-password", Set.of(Role.CANDIDATE)));
+        when(user.getId()).thenReturn(id);
+        when(user.getCreatedAt()).thenReturn(Instant.parse("2026-01-01T12:00:00Z"));
+        var profile = new CandidateProfile(user, "Candidate Name", "+21612345678");
+        when(repository.findById(id)).thenReturn(Optional.of(profile));
+
+        var result = service.updateRoles(id, new UpdateCandidateRolesRequest(
+                java.util.List.of(Role.INSTRUCTOR, Role.CANDIDATE)
+        ));
+
+        assertThat(result.roles()).containsExactly("CANDIDATE", "INSTRUCTOR");
+        assertThat(user.getRoles()).containsExactlyInAnyOrder(Role.CANDIDATE, Role.INSTRUCTOR);
     }
 }

@@ -8,8 +8,13 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../core/auth/auth.service';
-import { Candidate, CandidateStatus } from '../../core/candidates/candidate.models';
+import { AuthSession } from '../../core/auth/auth.models';
+import { Candidate, CandidateStatus, UserRole } from '../../core/candidates/candidate.models';
 import { CandidateService } from '../../core/candidates/candidate.service';
+
+function isUserRole(role: string): role is UserRole {
+  return role === 'ADMIN' || role === 'INSTRUCTOR' || role === 'CANDIDATE';
+}
 
 @Component({
   selector: 'app-candidates',
@@ -27,6 +32,10 @@ export class CandidatesComponent {
   readonly searchTerm = signal('');
   readonly statusFilter = signal<'ALL' | CandidateStatus>('ALL');
   readonly selectedCandidate = signal<Candidate | null>(null);
+  readonly session: AuthSession | null;
+  readonly isAdmin: boolean;
+  readonly availableRoles: UserRole[] = ['ADMIN', 'INSTRUCTOR', 'CANDIDATE'];
+  readonly selectedRoles = signal<UserRole[]>([]);
   readonly filteredCandidates = computed(() => {
     const term = this.searchTerm().trim().toLocaleLowerCase();
     const status = this.statusFilter();
@@ -44,12 +53,19 @@ export class CandidatesComponent {
     private readonly authService: AuthService,
     private readonly router: Router,
   ) {
+    this.session = this.authService.getSession();
+    this.isAdmin = this.authService.getSession()?.roles.includes('ADMIN') ?? false;
     this.form = formBuilder.nonNullable.group({
       fullName: ['', [Validators.required, Validators.maxLength(120)]],
       phone: ['', [Validators.required, Validators.pattern(/^(?=(?:\D*\d){7})[+()0-9. -]{7,30}$/)]],
       status: ['ACTIVE' as CandidateStatus, Validators.required],
     });
     this.loadCandidates();
+  }
+
+  roleLabel(candidate: Candidate): string {
+    const roles = this.rolesFor(candidate);
+    return roles.length ? roles.join(' · ') : '—';
   }
 
   loadCandidates(): void {
@@ -67,6 +83,7 @@ export class CandidatesComponent {
     this.selectedCandidate.set(candidate);
     this.successMessage.set('');
     this.errorMessage.set('');
+    this.selectedRoles.set(this.rolesFor(candidate));
     this.form.setValue({
       fullName: candidate.fullName,
       phone: candidate.phone,
@@ -76,6 +93,7 @@ export class CandidatesComponent {
 
   cancelEdit(): void {
     this.selectedCandidate.set(null);
+    this.selectedRoles.set([]);
     this.form.reset({ fullName: '', phone: '', status: 'ACTIVE' });
   }
 
@@ -115,6 +133,38 @@ export class CandidatesComponent {
       });
   }
 
+  onRoleToggle(role: UserRole, event: Event): void {
+    const target = event.target;
+    if (!(target instanceof HTMLInputElement)) {
+      return;
+    }
+    this.selectedRoles.update((roles) => target.checked
+      ? [...roles, role]
+      : roles.filter((selectedRole) => selectedRole !== role));
+  }
+
+  saveRoles(): void {
+    const candidate = this.selectedCandidate();
+    const roles = this.selectedRoles();
+    if (!this.isAdmin || !candidate || roles.length === 0 || this.saving()) {
+      return;
+    }
+
+    this.errorMessage.set('');
+    this.successMessage.set('');
+    this.saving.set(true);
+    this.candidateService.updateRoles(candidate.id, { roles })
+      .pipe(finalize(() => this.saving.set(false)))
+      .subscribe({
+        next: (updated) => {
+          this.candidates.update((items) => items.map((item) => item.id === updated.id ? updated : item));
+          this.selectedCandidate.set(updated);
+          this.successMessage.set(`Rôles de ${updated.fullName} mis à jour.`);
+        },
+        error: (error: unknown) => this.errorMessage.set(this.getErrorMessage(error)),
+      });
+  }
+
   logout(): void {
     this.authService.logout();
     void this.router.navigate(['/login']);
@@ -130,5 +180,16 @@ export class CandidatesComponent {
     }
 
     return 'Les candidats n’ont pas pu être chargés ou mis à jour. Veuillez réessayer.';
+  }
+
+  private rolesFor(candidate: Candidate): UserRole[] {
+    const roles = candidate.roles?.filter(isUserRole);
+    if (roles?.length) {
+      return roles;
+    }
+
+    return candidate.id === this.session?.userId
+      ? this.session.roles.filter(isUserRole)
+      : [];
   }
 }

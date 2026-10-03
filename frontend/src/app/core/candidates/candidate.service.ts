@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { Candidate, UpdateCandidateRequest } from './candidate.models';
+import { Candidate, UpdateCandidateRequest, UpdateCandidateRolesRequest } from './candidate.models';
 
 @Injectable({ providedIn: 'root' })
 export class CandidateService {
@@ -13,5 +13,9 @@ export class CandidateService {
 
   update(id: string, changes: UpdateCandidateRequest): Observable<Candidate> {
     return this.http.put<Candidate>(`/api/candidates/${id}`, changes);
+  }
+
+  updateRoles(id: string, changes: UpdateCandidateRolesRequest): Observable<Candidate> {
+    return this.http.put<Candidate>(`/api/candidates/${id}/roles`, changes);
   }
 }

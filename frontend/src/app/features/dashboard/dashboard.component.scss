@@ -39,6 +39,8 @@ nav { display: grid; gap: 5px; }
 .breadcrumb { display: flex; align-items: center; color: #8a958e; font-size: 10px; }
 .breadcrumb mat-icon { width: 16px; height: 16px; margin: 0 5px; color: #a6b0a9; font-size: 16px; }
 .topbar-actions { display: flex; align-items: center; gap: 14px; }
+.topbar-logout { color: #68796f; font-size: 10px; }
+.topbar-logout mat-icon { margin-right: 4px; font-size: 17px; }
 .secure-indicator { display: flex; align-items: center; gap: 7px; color: #68796f; font-size: 10px; }
 .status-dot, .coming-soon > span { width: 7px; height: 7px; border-radius: 50%; background: #53a578; box-shadow: 0 0 0 3px #53a5781c; }
 .topbar-avatar { width: 30px; height: 30px; font-size: 11px; }

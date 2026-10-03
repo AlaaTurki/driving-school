@@ -55,12 +55,13 @@
         <div class="table-wrap">
           <table>
             <thead>
-              <tr><th>Nom</th><th>Coordonnées</th><th>Inscrit le</th><th>Statut</th><th><span class="visually-hidden">Action</span></th></tr>
+              <tr><th>Nom</th><th>Rôle</th><th>Coordonnées</th><th>Inscrit le</th><th>Statut</th><th><span class="visually-hidden">Action</span></th></tr>
             </thead>
             <tbody>
               @for (candidate of filteredCandidates(); track candidate.id) {
                 <tr>
                   <td><strong>{{ candidate.fullName }}</strong></td>
+                  <td>{{ roleLabel(candidate) }}</td>
                   <td class="contact">
                     <a [href]="'mailto:' + candidate.email">{{ candidate.email }}</a>
                     <a [href]="'tel:' + candidate.phone">{{ candidate.phone }}</a>
@@ -119,6 +120,36 @@
             </button>
           </div>
         </form>
+        @if (isAdmin) {
+          <section class="role-editor" aria-labelledby="roles-title">
+            <h3 id="roles-title">Rôles du compte</h3>
+            <div class="role-options">
+              @for (role of availableRoles; track role) {
+                <label>
+                  <input
+                    type="checkbox"
+                    [checked]="selectedRoles().includes(role)"
+                    [disabled]="saving()"
+                    (change)="onRoleToggle(role, $event)"
+                  />
+                  {{ role }}
+                </label>
+              }
+            </div>
+            @if (selectedRoles().length === 0) {
+              <small class="field-error">Sélectionnez au moins un rôle.</small>
+            }
+            <button
+              mat-flat-button
+              color="primary"
+              type="button"
+              [disabled]="saving() || selectedRoles().length === 0"
+              (click)="saveRoles()"
+            >
+              @if (saving()) { <mat-spinner diameter="18" /> } @else { Enregistrer les rôles }
+            </button>
+          </section>
+        }
       </section>
     }
   </section>

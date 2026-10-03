@@ -46,9 +46,6 @@
           <small>{{ session?.roles?.join(' · ') }}</small>
         </span>
       </div>
-      <button mat-button class="logout-button" type="button" (click)="logout()">
-        <mat-icon>logout</mat-icon>Déconnexion
-      </button>
     </div>
   </aside>
 
@@ -57,6 +54,9 @@
       <div class="breadcrumb">Espace de gestion <mat-icon>chevron_right</mat-icon> Vue d’ensemble</div>
       <div class="topbar-actions">
         <span class="secure-indicator"><span class="status-dot"></span>Session sécurisée</span>
+        <button mat-button class="topbar-logout" type="button" (click)="logout()">
+          <mat-icon>logout</mat-icon>Déconnexion
+        </button>
         <span class="topbar-avatar">{{ session?.email?.charAt(0)?.toUpperCase() }}</span>
       </div>
     </header>

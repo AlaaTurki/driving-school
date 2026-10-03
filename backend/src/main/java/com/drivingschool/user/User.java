@@ -90,6 +90,13 @@ public class User {
         return Set.copyOf(roles);
     }
 
+    public void setRoles(Set<Role> roles) {
+        if (roles.isEmpty()) {
+            throw new IllegalArgumentException("A user must have at least one role");
+        }
+        this.roles = new HashSet<>(roles);
+    }
+
     public boolean isEnabled() {
         return enabled;
     }

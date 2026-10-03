@@ -1,9 +1,9 @@
 package com.drivingschool.candidate;
 
 import com.drivingschool.candidate.dto.CandidateResponse;
+import com.drivingschool.candidate.dto.UpdateCandidateRolesRequest;
 import com.drivingschool.candidate.dto.UpdateCandidateRequest;
 import jakarta.validation.Valid;
-import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -37,5 +37,14 @@ public class CandidateController {
             @Valid @RequestBody UpdateCandidateRequest request
     ) {
         return candidateService.update(id, request);
+    }
+
+    @PutMapping("/{id}/roles")
+    @PreAuthorize("hasRole('ADMIN')")
+    public CandidateResponse updateRoles(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateCandidateRolesRequest request
+    ) {
+        return candidateService.updateRoles(id, request);
     }
 }

@@ -1,6 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { UpdateCandidateRolesRequest } from './candidate.models';
 import { CandidateService } from './candidate.service';
 
 describe('CandidateService', () => {
@@ -22,6 +23,7 @@ describe('CandidateService', () => {
       id: 'candidate-id',
       fullName: 'Candidate Name',
       email: 'candidate@example.com',
+      roles: ['CANDIDATE'],
       phone: '+216 12 345 678',
       status: 'ACTIVE' as const,
       registeredAt: '2026-10-03T11:00:00Z',
@@ -47,6 +49,27 @@ describe('CandidateService', () => {
       id: 'candidate-id',
       ...changes,
       email: 'candidate@example.com',
+      roles: ['CANDIDATE'],
+      registeredAt: '2026-10-03T11:00:00Z',
+    });
+  });
+
+  it('updates candidate roles', () => {
+    const changes: UpdateCandidateRolesRequest = { roles: ['INSTRUCTOR', 'CANDIDATE'] };
+
+    service.updateRoles('candidate-id', changes).subscribe((result) => {
+      expect(result.roles).toEqual(['INSTRUCTOR', 'CANDIDATE']);
+    });
+    const request = httpTesting.expectOne('/api/candidates/candidate-id/roles');
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body).toEqual(changes);
+    request.flush({
+      id: 'candidate-id',
+      fullName: 'Candidate Name',
+      email: 'candidate@example.com',
+      roles: changes.roles,
+      phone: '+216 12 345 678',
+      status: 'ACTIVE',
       registeredAt: '2026-10-03T11:00:00Z',
     });
   });
