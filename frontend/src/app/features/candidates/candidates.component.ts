@@ -46,7 +46,7 @@ export class CandidatesComponent {
   ) {
     this.form = formBuilder.nonNullable.group({
       fullName: ['', [Validators.required, Validators.maxLength(120)]],
-      phone: ['', [Validators.required, Validators.pattern(/^[+()0-9. -]{7,30}$/)]],
+      phone: ['', [Validators.required, Validators.pattern(/^(?=(?:\D*\d){7})[+()0-9. -]{7,30}$/)]],
       status: ['ACTIVE' as CandidateStatus, Validators.required],
     });
     this.loadCandidates();
