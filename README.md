@@ -33,12 +33,14 @@ $env:JWT_SECRET = (openssl rand -base64 32)
 mvn spring-boot:run
 ```
 
-Tests unitaires :
+Tests unitaires et intégration :
 
 ```powershell
 Set-Location backend
 mvn test
 ```
+
+Le scénario `AuthFlowIntegrationTest` crée une base PostgreSQL avec Testcontainers ; Docker doit être disponible pour l'exécuter.
 
 ## Application Web Angular
 
@@ -63,11 +65,11 @@ Dans Swagger, ouvrez `POST /api/auth/login`, choisissez **Try it out**, puis env
 }
 ```
 
-Pour créer un compte candidat, utilisez `POST /api/auth/register` avec un nom complet, une adresse e-mail, un numéro de téléphone et un mot de passe d'au moins 8 caractères. Une inscription réussie crée le compte et renvoie directement une session JWT.
+Pour créer un compte candidat, utilisez `POST /api/auth/register` avec un nom complet, une adresse e-mail, un numéro de téléphone et un mot de passe d'au moins 8 caractères. Une inscription réussie crée le compte et renvoie directement une session avec un jeton d'accès de 15 minutes et un refresh token de 7 jours. `POST /api/auth/refresh` échange un refresh token contre une nouvelle paire de jetons et invalide l'ancien. `POST /api/auth/logout` révoque le refresh token transmis.
 
 L'API `GET /api/candidates` liste les profils candidats et `PUT /api/candidates/{id}` met à jour le nom complet, le téléphone et le statut (`ACTIVE` ou `INACTIVE`). Désactiver un compte candidat empêche sa connexion. Ces routes sont réservées aux rôles `ADMIN` et `INSTRUCTOR`. Les nouvelles inscriptions demandent le nom complet, l'e-mail, le téléphone et un mot de passe ; la migration Flyway ajoute les profils et reprend les anciens comptes candidats.
 
-Postman peut envoyer la même requête en `POST http://localhost:8080/api/auth/login`, avec `Content-Type: application/json`. Une connexion valide renvoie un `accessToken`, le type `Bearer`, l'expiration, l'identifiant utilisateur et ses rôles. Pour les futures routes protégées, envoyez `Authorization: Bearer <accessToken>` ; Swagger permet de le saisir via le bouton **Authorize**.
+Postman peut envoyer la même requête en `POST http://localhost:8080/api/auth/login`, avec `Content-Type: application/json`. Une connexion valide renvoie un `accessToken`, un `refreshToken`, le type `Bearer`, l'expiration, l'identifiant utilisateur et ses rôles. Stocker le refresh token de façon sécurisée côté client ; seul son hash est conservé en base.
 
 Les erreurs de validation renvoient un JSON structuré avec le statut, le chemin et les champs invalides. Un email ou mot de passe incorrect renvoie `401`.
 # driving-school

@@ -1,6 +1,7 @@
 package com.drivingschool.exception;
 
 import com.drivingschool.auth.EmailAlreadyRegisteredException;
+import com.drivingschool.auth.InvalidRefreshTokenException;
 import com.drivingschool.candidate.CandidateNotFoundException;
 import com.drivingschool.common.api.ApiErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,6 +25,14 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
         return error(HttpStatus.UNAUTHORIZED, "Invalid email or password", request, Map.of());
+    }
+
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidRefreshToken(
+            InvalidRefreshTokenException exception,
+            HttpServletRequest request
+    ) {
+        return error(HttpStatus.UNAUTHORIZED, exception.getMessage(), request, Map.of());
     }
 
     @ExceptionHandler(EmailAlreadyRegisteredException.class)

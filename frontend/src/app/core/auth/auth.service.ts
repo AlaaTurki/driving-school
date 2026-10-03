@@ -29,7 +29,12 @@ export class AuthService {
 
     try {
       const session = JSON.parse(serialized) as AuthSession;
-      if (!session.accessToken || !session.expiresAt || Date.parse(session.expiresAt) <= Date.now()) {
+      if (
+        !session.accessToken ||
+        !session.refreshToken ||
+        !session.expiresAt ||
+        Date.parse(session.expiresAt) <= Date.now()
+      ) {
         this.logout();
         return null;
       }

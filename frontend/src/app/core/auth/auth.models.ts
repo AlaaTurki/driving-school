@@ -12,6 +12,7 @@ export interface RegistrationRequest {
 
 export interface LoginResponse {
   accessToken: string;
+  refreshToken: string;
   tokenType: 'Bearer';
   expiresAt: string;
   userId: string;

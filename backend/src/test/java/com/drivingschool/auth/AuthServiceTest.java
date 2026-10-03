@@ -2,6 +2,7 @@ package com.drivingschool.auth;
 
 import com.drivingschool.auth.dto.LoginRequest;
 import com.drivingschool.auth.dto.RegistrationRequest;
+import com.drivingschool.auth.dto.RefreshRequest;
 import com.drivingschool.candidate.CandidateRegistrationService;
 import com.drivingschool.security.AppUserDetails;
 import com.drivingschool.security.JwtService;
@@ -32,11 +33,13 @@ class AuthServiceTest {
     private final JwtService jwtService = mock(JwtService.class);
     private final UserRepository userRepository = mock(UserRepository.class);
     private final CandidateRegistrationService candidateRegistrationService = mock(CandidateRegistrationService.class);
+    private final RefreshTokenService refreshTokenService = mock(RefreshTokenService.class);
     private final AuthService authService = new AuthService(
             authenticationManager,
             jwtService,
             userRepository,
             candidateRegistrationService,
+            refreshTokenService,
             Duration.ofHours(1)
     );
 
@@ -53,10 +56,12 @@ class AuthServiceTest {
                 new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities())
         );
         when(jwtService.generateToken(user)).thenReturn("signed.jwt.token");
+        when(refreshTokenService.issue(user.id())).thenReturn("refresh-token");
 
         var response = authService.login(new LoginRequest(" admin@example.com ", "correct-password"));
 
         assertThat(response.accessToken()).isEqualTo("signed.jwt.token");
+        assertThat(response.refreshToken()).isEqualTo("refresh-token");
         assertThat(response.tokenType()).isEqualTo("Bearer");
         assertThat(response.email()).isEqualTo("admin@example.com");
         assertThat(response.roles()).containsExactly("ADMIN");
@@ -80,10 +85,12 @@ class AuthServiceTest {
         when(candidate.isEnabled()).thenReturn(true);
         when(candidateRegistrationService.register(request)).thenReturn(candidate);
         when(jwtService.generateToken(any(AppUserDetails.class))).thenReturn("signed.jwt.token");
+        when(refreshTokenService.issue(any(UUID.class))).thenReturn("refresh-token");
 
         var response = authService.register(request);
 
         assertThat(response.accessToken()).isEqualTo("signed.jwt.token");
+        assertThat(response.refreshToken()).isEqualTo("refresh-token");
         assertThat(response.email()).isEqualTo("candidate@example.com");
         assertThat(response.roles()).containsExactly("CANDIDATE");
         verify(candidateRegistrationService).register(request);
@@ -103,5 +110,25 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.register(request))
                 .isInstanceOf(EmailAlreadyRegisteredException.class);
+    }
+
+    @Test
+    void refreshRotatesRefreshTokenAndReturnsFreshAccessToken() {
+        var user = new AppUserDetails(
+                UUID.randomUUID(),
+                "candidate@example.com",
+                "encoded-password",
+                true,
+                List.of(new SimpleGrantedAuthority("ROLE_CANDIDATE"))
+        );
+        when(refreshTokenService.rotate("old-refresh-token"))
+                .thenReturn(new RefreshTokenService.Rotation(user, "rotated-refresh-token"));
+        when(jwtService.generateToken(user)).thenReturn("new.access.token");
+
+        var response = authService.refresh(new RefreshRequest("old-refresh-token"));
+
+        assertThat(response.accessToken()).isEqualTo("new.access.token");
+        assertThat(response.refreshToken()).isEqualTo("rotated-refresh-token");
+        verify(refreshTokenService).rotate("old-refresh-token");
     }
 }

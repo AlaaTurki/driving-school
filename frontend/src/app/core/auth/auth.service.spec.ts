@@ -25,6 +25,7 @@ describe('AuthService', () => {
     const credentials = { email: 'admin@example.com', password: 'strong-password' };
     const response = {
       accessToken: 'signed-token',
+      refreshToken: 'signed-refresh-token',
       tokenType: 'Bearer' as const,
       expiresAt: new Date(Date.now() + 60_000).toISOString(),
       userId: '90fd6f8b-28c7-4f7d-9428-90d7d177664e',
@@ -53,6 +54,7 @@ describe('AuthService', () => {
     };
     const response = {
       accessToken: 'candidate-token',
+      refreshToken: 'candidate-refresh-token',
       tokenType: 'Bearer' as const,
       expiresAt: new Date(Date.now() + 60_000).toISOString(),
       userId: '90fd6f8b-28c7-4f7d-9428-90d7d177664e',
@@ -75,6 +77,7 @@ describe('AuthService', () => {
   it('discards expired sessions', () => {
     sessionStorage.setItem('driving-school-auth', JSON.stringify({
       accessToken: 'expired-token',
+      refreshToken: 'expired-refresh-token',
       expiresAt: new Date(Date.now() - 60_000).toISOString(),
     }));
 
