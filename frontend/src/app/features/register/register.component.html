@@ -1,0 +1,127 @@
+<main class="login-page">
+  <section class="login-card" aria-labelledby="register-title">
+    <div class="brand-mark" aria-hidden="true">
+      <mat-icon>directions_car</mat-icon>
+    </div>
+    <p class="eyebrow">AUTO-ÉCOLE · CANDIDAT</p>
+    <h1 id="register-title">Créer mon compte</h1>
+    <p class="intro">Inscrivez-vous pour commencer votre parcours de conduite.</p>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <mat-form-field appearance="outline">
+        <mat-label>Nom complet</mat-label>
+        <input matInput autocomplete="name" formControlName="fullName" />
+        <mat-icon matSuffix>person_outline</mat-icon>
+        @if (form.controls.fullName.touched && form.controls.fullName.hasError('required')) {
+          <mat-error>Votre nom complet est obligatoire.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Adresse e-mail</mat-label>
+        <input
+          matInput
+          type="email"
+          autocomplete="email"
+          formControlName="email"
+          placeholder="nom@exemple.tn"
+        />
+        <mat-icon matSuffix>mail_outline</mat-icon>
+        @if (form.controls.email.touched && form.controls.email.hasError('required')) {
+          <mat-error>L’adresse e-mail est obligatoire.</mat-error>
+        } @else if (form.controls.email.touched && form.controls.email.hasError('email')) {
+          <mat-error>Entrez une adresse e-mail valide.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Téléphone</mat-label>
+        <input
+          matInput
+          type="tel"
+          autocomplete="tel"
+          formControlName="phone"
+          placeholder="+216 12 345 678"
+        />
+        <mat-icon matSuffix>phone</mat-icon>
+        @if (form.controls.phone.touched && form.controls.phone.hasError('required')) {
+          <mat-error>Votre numéro de téléphone est obligatoire.</mat-error>
+        } @else if (form.controls.phone.touched && form.controls.phone.hasError('pattern')) {
+          <mat-error>Entrez un numéro de téléphone valide.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Mot de passe</mat-label>
+        <input
+          matInput
+          [errorStateMatcher]="confirmPasswordErrorMatcher"
+          type="password"
+          autocomplete="new-password"
+          formControlName="password"
+        />
+        <mat-icon matSuffix>lock_outline</mat-icon>
+        @if (form.controls.password.touched && form.controls.password.hasError('required')) {
+          <mat-error>Le mot de passe est obligatoire.</mat-error>
+        } @else if (form.controls.password.touched && form.controls.password.hasError('minlength')) {
+          <mat-error>Le mot de passe doit contenir au moins 8 caractères.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Confirmer le mot de passe</mat-label>
+        <input
+          matInput
+          type="password"
+          autocomplete="new-password"
+          formControlName="confirmPassword"
+        />
+        <mat-icon matSuffix>lock_outline</mat-icon>
+        @if (form.controls.confirmPassword.touched && form.controls.confirmPassword.hasError('required')) {
+          <mat-error>Confirmez votre mot de passe.</mat-error>
+        } @else if (form.controls.confirmPassword.touched && form.hasError('passwordMismatch')) {
+          <mat-error>Les mots de passe ne correspondent pas.</mat-error>
+        }
+      </mat-form-field>
+
+      @if (errorMessage()) {
+        <p class="error-message" role="alert">{{ errorMessage() }}</p>
+      }
+
+      <button
+        mat-flat-button
+        color="primary"
+        class="submit-button"
+        type="submit"
+        [disabled]="submitting()"
+      >
+        @if (submitting()) {
+          <mat-spinner diameter="20" />
+        } @else {
+          <span>Créer mon compte <mat-icon>arrow_forward</mat-icon></span>
+        }
+      </button>
+      <a mat-stroked-button color="primary" class="register-button" routerLink="/login">
+        J’ai déjà un compte
+      </a>
+    </form>
+
+    <p class="security-note">
+      <mat-icon>verified_user</mat-icon>
+      Inscription sécurisée réservée aux candidats
+    </p>
+  </section>
+
+  <aside class="login-aside" aria-label="Présentation">
+    <div class="aside-content">
+      <span class="aside-kicker">VOTRE PARCOURS COMMENCE ICI</span>
+      <h2>La route vers votre permis commence aujourd’hui.</h2>
+      <p>Créez votre espace candidat pour préparer la suite de votre formation.</p>
+      <div class="road-art" aria-hidden="true">
+        <span class="road-line"></span>
+        <span class="road-car"><mat-icon>directions_car</mat-icon></span>
+      </div>
+      <span class="aside-footer">Simplement organisé, prêt à avancer.</span>
+    </div>
+  </aside>
+</main>

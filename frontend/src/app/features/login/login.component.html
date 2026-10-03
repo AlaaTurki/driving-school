@@ -1,0 +1,84 @@
+<main class="login-page">
+  <section class="login-card" aria-labelledby="login-title">
+    <div class="brand-mark" aria-hidden="true">
+      <mat-icon>directions_car</mat-icon>
+    </div>
+    <p class="eyebrow">AUTO-ÉCOLE · GESTION</p>
+    <h1 id="login-title">Ravi de vous revoir</h1>
+    <p class="intro">Connectez-vous à votre espace de gestion.</p>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <mat-form-field appearance="outline">
+        <mat-label>Adresse e-mail</mat-label>
+        <input
+          matInput
+          type="email"
+          autocomplete="username"
+          formControlName="email"
+          placeholder="nom@autoecole.tn"
+        />
+        <mat-icon matSuffix>mail_outline</mat-icon>
+        @if (form.controls.email.touched && form.controls.email.hasError('required')) {
+          <mat-error>L’adresse e-mail est obligatoire.</mat-error>
+        } @else if (form.controls.email.touched && form.controls.email.hasError('email')) {
+          <mat-error>Entrez une adresse e-mail valide.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Mot de passe</mat-label>
+        <input
+          matInput
+          type="password"
+          autocomplete="current-password"
+          formControlName="password"
+        />
+        <mat-icon matSuffix>lock_outline</mat-icon>
+        @if (form.controls.password.touched && form.controls.password.hasError('required')) {
+          <mat-error>Le mot de passe est obligatoire.</mat-error>
+        } @else if (form.controls.password.touched && form.controls.password.hasError('minlength')) {
+          <mat-error>Le mot de passe doit contenir au moins 8 caractères.</mat-error>
+        }
+      </mat-form-field>
+
+      @if (errorMessage()) {
+        <p class="error-message" role="alert">{{ errorMessage() }}</p>
+      }
+
+      <button
+        mat-flat-button
+        color="primary"
+        class="submit-button"
+        type="submit"
+        [disabled]="submitting()"
+      >
+        @if (submitting()) {
+          <mat-spinner diameter="20" />
+        } @else {
+          <span>Se connecter <mat-icon>arrow_forward</mat-icon></span>
+        }
+      </button>
+      <a mat-stroked-button color="primary" class="register-button" routerLink="/register">
+        Créer un compte candidat
+      </a>
+    </form>
+
+    <p class="security-note">
+      <mat-icon>verified_user</mat-icon>
+      Un compte candidat pour commencer votre parcours
+    </p>
+  </section>
+
+  <aside class="login-aside" aria-label="Présentation">
+    <div class="aside-content">
+      <span class="aside-kicker">VOTRE AUTO-ÉCOLE, EN UN SEUL ESPACE</span>
+      <h2>Moins d’administratif.<br />Plus de temps sur la route.</h2>
+      <p>Retrouvez bientôt vos candidats, vos séances et votre planning au même endroit.</p>
+      <div class="road-art" aria-hidden="true">
+        <span class="road-line"></span>
+        <span class="road-car"><mat-icon>directions_car</mat-icon></span>
+      </div>
+      <span class="aside-footer">Simplement organisé, prêt à avancer.</span>
+    </div>
+  </aside>
+</main>

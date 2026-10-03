@@ -1,0 +1,153 @@
+<div class="workspace">
+  <aside class="sidebar">
+    <a class="brand" href="/dashboard" aria-label="Conduite, accueil">
+      <span class="brand-icon"><mat-icon>directions_car</mat-icon></span>
+      <span class="brand-copy">
+        <strong>Conduite</strong>
+        <small>ESPACE DE GESTION</small>
+      </span>
+    </a>
+
+    <div class="school-switcher">
+      <span class="school-avatar">C</span>
+      <span class="school-copy"><strong>Mon auto-école</strong><small>Établissement</small></span>
+      <mat-icon>expand_more</mat-icon>
+    </div>
+
+    <p class="nav-label">MENU PRINCIPAL</p>
+    <nav aria-label="Navigation principale">
+      <a class="nav-link active" href="/dashboard" aria-current="page">
+        <mat-icon>space_dashboard</mat-icon><span>Vue d’ensemble</span>
+      </a>
+      @if (session?.roles?.includes('ADMIN') || session?.roles?.includes('INSTRUCTOR')) {
+        <a class="nav-link" routerLink="/candidates" routerLinkActive="active" ariaCurrentWhenActive="page">
+          <mat-icon>group</mat-icon><span>Candidats</span>
+        </a>
+      }
+      <span class="nav-link disabled"><mat-icon>calendar_month</mat-icon><span>Planning</span><small>Bientôt</small></span>
+      <span class="nav-link disabled"><mat-icon>directions_car</mat-icon><span>Leçons</span><small>Bientôt</small></span>
+      <span class="nav-link disabled"><mat-icon>payments</mat-icon><span>Paiements</span><small>Bientôt</small></span>
+    </nav>
+
+    <div class="sidebar-help">
+      <span class="help-icon"><mat-icon>support_agent</mat-icon></span>
+      <strong>Besoin d’aide ?</strong>
+      <p>Consultez la documentation de votre espace.</p>
+      <a href="http://localhost:8080/swagger-ui.html" target="_blank" rel="noopener noreferrer">
+        Documentation API <mat-icon>north_east</mat-icon>
+      </a>
+    </div>
+
+    <div class="sidebar-bottom">
+      <div class="account">
+        <span class="avatar">{{ session?.email?.charAt(0)?.toUpperCase() }}</span>
+        <span class="account-details">
+          <strong>{{ session?.email }}</strong>
+          <small>{{ session?.roles?.join(' · ') }}</small>
+        </span>
+      </div>
+      <button mat-button class="logout-button" type="button" (click)="logout()">
+        <mat-icon>logout</mat-icon>Déconnexion
+      </button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <header class="topbar">
+      <div class="breadcrumb">Espace de gestion <mat-icon>chevron_right</mat-icon> Vue d’ensemble</div>
+      <div class="topbar-actions">
+        <span class="secure-indicator"><span class="status-dot"></span>Session sécurisée</span>
+        <span class="topbar-avatar">{{ session?.email?.charAt(0)?.toUpperCase() }}</span>
+      </div>
+    </header>
+
+    <section class="page-content">
+      <section class="welcome-panel" aria-labelledby="welcome-title">
+        <div class="welcome-copy">
+          <p class="eyebrow"><span class="eyebrow-line"></span> VOTRE ESPACE DE GESTION</p>
+          <h1 id="welcome-title">Chaque trajet commence<br />par un <em>bon départ.</em></h1>
+          <p class="welcome-description">
+            Bienvenue dans votre espace. Retrouvez ici les outils pour faire avancer votre auto-école.
+          </p>
+          <a class="primary-link" href="http://localhost:8080/swagger-ui.html" target="_blank" rel="noopener noreferrer">
+            Explorer l’API <mat-icon>arrow_outward</mat-icon>
+          </a>
+        </div>
+        <div class="welcome-art" aria-hidden="true">
+          <div class="sun"></div>
+          <div class="art-hill hill-back"></div>
+          <div class="art-hill hill-front"></div>
+          <div class="road">
+            <span class="road-dash dash-one"></span>
+            <span class="road-dash dash-two"></span>
+            <span class="road-dash dash-three"></span>
+          </div>
+          <div class="art-car"><mat-icon>directions_car</mat-icon></div>
+          <span class="art-label">EN ROUTE VERS LA RÉUSSITE</span>
+        </div>
+        <span class="welcome-decoration decoration-one"></span>
+        <span class="welcome-decoration decoration-two"></span>
+      </section>
+
+      <section class="status-grid" aria-label="État de votre espace">
+        <article class="status-card">
+          <span class="status-icon green"><mat-icon>verified_user</mat-icon></span>
+          <div><p>VOTRE SESSION</p><strong>Connectée</strong><small>Authentification sécurisée</small></div>
+          <span class="card-check"><mat-icon>check</mat-icon></span>
+        </article>
+        <article class="status-card">
+          <span class="status-icon blue"><mat-icon>api</mat-icon></span>
+          <div><p>ESPACE DE TRAVAIL</p><strong>Prêt à démarrer</strong><small>Les modules arrivent bientôt</small></div>
+          <span class="card-check muted"><mat-icon>schedule</mat-icon></span>
+        </article>
+        <article class="status-card">
+          <span class="status-icon amber"><mat-icon>badge</mat-icon></span>
+          <div><p>VOTRE PROFIL</p><strong>{{ session?.roles?.join(' · ') }}</strong><small>Accès selon votre rôle</small></div>
+          <span class="card-check muted"><mat-icon>person</mat-icon></span>
+        </article>
+      </section>
+
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">TOUT AU MÊME ENDROIT</p>
+          <h2>Votre espace de travail</h2>
+        </div>
+        <span class="coming-soon"><span></span> De nouveaux outils arrivent</span>
+      </div>
+
+      <section class="module-grid" aria-label="Modules de gestion">
+        @if (session?.roles?.includes('ADMIN') || session?.roles?.includes('INSTRUCTOR')) {
+          <a class="module-card students" routerLink="/candidates">
+          <div class="module-top"><span class="module-icon"><mat-icon>groups</mat-icon></span><span class="module-arrow"><mat-icon>north_east</mat-icon></span></div>
+          <p class="module-number">01 <span>— APPRENTISSAGE</span></p>
+          <h3>Candidats</h3>
+          <p class="module-description">Suivez les profils et accompagnez chaque élève vers la réussite.</p>
+          <span class="module-state">Gérer les candidats</span>
+          <span class="card-decoration"></span>
+          </a>
+        }
+        <article class="module-card schedule">
+          <div class="module-top"><span class="module-icon"><mat-icon>calendar_month</mat-icon></span><span class="module-arrow"><mat-icon>north_east</mat-icon></span></div>
+          <p class="module-number">02 <span>— ORGANISATION</span></p>
+          <h3>Planning</h3>
+          <p class="module-description">Organisez les leçons et gardez votre emploi du temps en vue.</p>
+          <span class="module-state">Bientôt disponible</span>
+          <span class="card-decoration"></span>
+        </article>
+        <article class="module-card payments">
+          <div class="module-top"><span class="module-icon"><mat-icon>account_balance_wallet</mat-icon></span><span class="module-arrow"><mat-icon>north_east</mat-icon></span></div>
+          <p class="module-number">03 <span>— SUIVI</span></p>
+          <h3>Paiements</h3>
+          <p class="module-description">Consultez les règlements et gardez le suivi simplement.</p>
+          <span class="module-state">Bientôt disponible</span>
+          <span class="card-decoration"></span>
+        </article>
+      </section>
+
+      <footer class="page-footer">
+        <span>Un espace clair pour garder le cap.</span>
+        <span>Connecté en tant que <strong>{{ session?.email }}</strong></span>
+      </footer>
+    </section>
+  </main>
+</div>
