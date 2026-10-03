@@ -3,6 +3,8 @@ package com.drivingschool.exception;
 import com.drivingschool.auth.EmailAlreadyRegisteredException;
 import com.drivingschool.auth.InvalidRefreshTokenException;
 import com.drivingschool.candidate.CandidateNotFoundException;
+import com.drivingschool.candidate.CandidateHasNoAccountException;
+import com.drivingschool.candidate.CandidateUserNotFoundException;
 import com.drivingschool.common.api.ApiErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -49,6 +51,22 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
         return error(HttpStatus.NOT_FOUND, exception.getMessage(), request, Map.of());
+    }
+
+    @ExceptionHandler(CandidateUserNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleCandidateUserNotFound(
+            CandidateUserNotFoundException exception,
+            HttpServletRequest request
+    ) {
+        return error(HttpStatus.NOT_FOUND, exception.getMessage(), request, Map.of());
+    }
+
+    @ExceptionHandler(CandidateHasNoAccountException.class)
+    public ResponseEntity<ApiErrorResponse> handleCandidateHasNoAccount(
+            CandidateHasNoAccountException exception,
+            HttpServletRequest request
+    ) {
+        return error(HttpStatus.CONFLICT, exception.getMessage(), request, Map.of());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

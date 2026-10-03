@@ -55,6 +55,7 @@ td button mat-icon { width: 16px; height: 16px; font-size: 16px; }
 .field-error { color: #a43e33; font-size: 10px; font-weight: 400; }
 .edit-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; padding-top: 4px; }
 .edit-actions button { min-width: 90px; }
+.pagination { display: flex; align-items: center; justify-content: flex-end; gap: 12px; padding: 10px 16px; border-top: 1px solid #f0f2ee; color: #718177; font-size: 10px; }
 .role-editor { display: grid; justify-items: start; gap: 10px; margin-top: 20px; padding-top: 16px; border-top: 1px solid #edf0eb; }
 .role-editor h3 { margin: 0; color: #53665a; font-size: 12px; }
 .role-options { display: flex; flex-wrap: wrap; gap: 12px; }

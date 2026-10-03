@@ -15,9 +15,9 @@
     <div class="title-row">
       <div>
         <h1>Candidats</h1>
-        <p class="intro">Consultez les inscriptions et gardez les coordonnées à jour.</p>
+        <p class="intro">Consultez les candidats et recherchez leurs coordonnées ou leur statut.</p>
       </div>
-      <span class="total-count">{{ candidates().length }} candidat{{ candidates().length > 1 ? 's' : '' }}</span>
+      <span class="total-count">{{ totalElements() }} candidat{{ totalElements() > 1 ? 's' : '' }}</span>
     </div>
 
     @if (errorMessage()) {
@@ -45,6 +45,8 @@
             <option value="ALL">Tous</option>
             <option value="ACTIVE">Actifs</option>
             <option value="INACTIVE">Inactifs</option>
+            <option value="COMPLETED">Terminés</option>
+            <option value="SUSPENDED">Suspendus</option>
           </select>
         </label>
       </div>
@@ -55,32 +57,42 @@
         <div class="table-wrap">
           <table>
             <thead>
-              <tr><th>Nom</th><th>Rôle</th><th>Coordonnées</th><th>Inscrit le</th><th>Statut</th><th><span class="visually-hidden">Action</span></th></tr>
+              <tr><th>Nom</th><th>Rôle</th><th>Coordonnées</th><th>Date de naissance</th><th>Inscrit le</th><th>Statut</th><th><span class="visually-hidden">Action</span></th></tr>
             </thead>
             <tbody>
               @for (candidate of filteredCandidates(); track candidate.id) {
                 <tr>
-                  <td><strong>{{ candidate.fullName }}</strong></td>
+                  <td><strong>{{ candidate.firstName }} {{ candidate.lastName }}</strong></td>
                   <td>{{ roleLabel(candidate) }}</td>
                   <td class="contact">
                     <a [href]="'mailto:' + candidate.email">{{ candidate.email }}</a>
                     <a [href]="'tel:' + candidate.phone">{{ candidate.phone }}</a>
                   </td>
-                  <td>{{ candidate.registeredAt | date:'mediumDate' }}</td>
+                  <td>{{ candidate.dateOfBirth ? (candidate.dateOfBirth | date:'mediumDate') : '—' }}</td>
+                  <td>{{ candidate.registrationDate | date:'mediumDate' }}</td>
                   <td><span class="status-badge" [class.inactive]="candidate.status === 'INACTIVE'">
-                    {{ candidate.status === 'ACTIVE' ? 'Actif' : 'Inactif' }}
+                    {{ statusLabel(candidate.status) }}
                   </span></td>
-                  <td><button mat-button type="button" (click)="edit(candidate)"><mat-icon>edit</mat-icon>Modifier</button></td>
+                  <td>
+                    @if (isAdmin && candidate.userId) {
+                      <button mat-button type="button" (click)="editRoles(candidate)"><mat-icon>manage_accounts</mat-icon>Rôles</button>
+                    }
+                  </td>
                 </tr>
               }
             </tbody>
           </table>
         </div>
+        <div class="pagination">
+          <button mat-button type="button" (click)="previousPage()" [disabled]="pageNumber() === 0 || loading()">Précédent</button>
+          <span>Page {{ totalPages() ? pageNumber() + 1 : 0 }} / {{ totalPages() }}</span>
+          <button mat-button type="button" (click)="nextPage()" [disabled]="pageNumber() + 1 >= totalPages() || loading()">Suivant</button>
+        </div>
       } @else {
         <div class="empty-state">
           <mat-icon>group_off</mat-icon>
-          <strong>{{ candidates().length ? 'Aucun résultat' : 'Aucun candidat inscrit' }}</strong>
-          <span>{{ candidates().length ? 'Modifiez votre recherche ou le filtre de statut.' : 'Les nouvelles inscriptions apparaîtront ici.' }}</span>
+          <strong>{{ totalElements() ? 'Aucun résultat' : 'Aucun candidat inscrit' }}</strong>
+          <span>{{ totalElements() ? 'Modifiez votre recherche ou le filtre de statut.' : 'Les candidats apparaîtront ici.' }}</span>
         </div>
       }
     </section>
@@ -88,57 +100,32 @@
     @if (selectedCandidate(); as candidate) {
       <section class="edit-panel" aria-labelledby="edit-title">
         <div class="edit-heading">
-          <div><p class="eyebrow">DOSSIER CANDIDAT</p><h2 id="edit-title">Modifier {{ candidate.fullName }}</h2></div>
+          <div><p class="eyebrow">COMPTE CANDIDAT</p><h2 id="edit-title">Rôles — {{ candidate.firstName }} {{ candidate.lastName }}</h2></div>
           <button mat-icon-button type="button" aria-label="Fermer le formulaire" (click)="cancelEdit()">
             <mat-icon>close</mat-icon>
           </button>
         </div>
-        <p class="candidate-email">{{ candidate.email }} <span>•</span> Compte créé le {{ candidate.registeredAt | date:'mediumDate' }}</p>
-        <form [formGroup]="form" (ngSubmit)="save()">
-          <label>Nom complet
-            <input formControlName="fullName" autocomplete="name" />
-            @if (form.controls.fullName.touched && form.controls.fullName.hasError('required')) {
-              <small class="field-error">Le nom complet est obligatoire.</small>
+        <p class="candidate-email">{{ candidate.email }}</p>
+        <section class="role-editor" aria-labelledby="roles-title">
+          <h3 id="roles-title">Rôles du compte lié</h3>
+          <div class="role-options">
+            @for (role of availableRoles; track role) {
+              <label>
+                <input
+                  type="checkbox"
+                  [checked]="selectedRoles().includes(role)"
+                  [disabled]="saving()"
+                  (change)="onRoleToggle(role, $event)"
+                />
+                {{ role }}
+              </label>
             }
-          </label>
-          <label>Téléphone
-            <input type="tel" formControlName="phone" autocomplete="tel" />
-            @if (form.controls.phone.touched && (form.controls.phone.hasError('required') || form.controls.phone.hasError('pattern'))) {
-              <small class="field-error">Entrez un numéro de téléphone valide.</small>
-            }
-          </label>
-          <label>Statut du compte
-            <select formControlName="status">
-              <option value="ACTIVE">Actif</option>
-              <option value="INACTIVE">Inactif</option>
-            </select>
-          </label>
+          </div>
+          @if (selectedRoles().length === 0) {
+            <small class="field-error">Sélectionnez au moins un rôle.</small>
+          }
           <div class="edit-actions">
             <button mat-button type="button" (click)="cancelEdit()">Annuler</button>
-            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
-              @if (saving()) { <mat-spinner diameter="18" /> } @else { Enregistrer }
-            </button>
-          </div>
-        </form>
-        @if (isAdmin) {
-          <section class="role-editor" aria-labelledby="roles-title">
-            <h3 id="roles-title">Rôles du compte</h3>
-            <div class="role-options">
-              @for (role of availableRoles; track role) {
-                <label>
-                  <input
-                    type="checkbox"
-                    [checked]="selectedRoles().includes(role)"
-                    [disabled]="saving()"
-                    (change)="onRoleToggle(role, $event)"
-                  />
-                  {{ role }}
-                </label>
-              }
-            </div>
-            @if (selectedRoles().length === 0) {
-              <small class="field-error">Sélectionnez au moins un rôle.</small>
-            }
             <button
               mat-flat-button
               color="primary"
@@ -148,8 +135,8 @@
             >
               @if (saving()) { <mat-spinner diameter="18" /> } @else { Enregistrer les rôles }
             </button>
-          </section>
-        }
+          </div>
+        </section>
       </section>
     }
   </section>

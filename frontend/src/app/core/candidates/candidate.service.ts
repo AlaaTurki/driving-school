@@ -1,18 +1,23 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { Candidate, UpdateCandidateRequest, UpdateCandidateRolesRequest } from './candidate.models';
+import { Candidate, CandidatePage, CandidateSearch, UpdateCandidateRolesRequest } from './candidate.models';
 
 @Injectable({ providedIn: 'root' })
 export class CandidateService {
   constructor(private readonly http: HttpClient) {}
 
-  findAll(): Observable<Candidate[]> {
-    return this.http.get<Candidate[]>('/api/candidates');
-  }
-
-  update(id: string, changes: UpdateCandidateRequest): Observable<Candidate> {
-    return this.http.put<Candidate>(`/api/candidates/${id}`, changes);
+  findAll(query: CandidateSearch): Observable<CandidatePage> {
+    let params = new HttpParams()
+      .set('page', query.page)
+      .set('size', query.size);
+    if (query.search.trim()) {
+      params = params.set('search', query.search.trim());
+    }
+    if (query.status !== 'ALL') {
+      params = params.set('status', query.status);
+    }
+    return this.http.get<CandidatePage>('/api/candidates', { params });
   }
 
   updateRoles(id: string, changes: UpdateCandidateRolesRequest): Observable<Candidate> {

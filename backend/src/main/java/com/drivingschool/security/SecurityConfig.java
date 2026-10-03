@@ -3,6 +3,7 @@ package com.drivingschool.security;
 import com.drivingschool.common.api.ApiSecurityExceptionHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -36,6 +37,10 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers(HttpMethod.GET, "/api/candidates", "/api/candidates/**")
+                        .hasAnyRole("ADMIN", "INSTRUCTOR")
+                        .requestMatchers("/api/candidates/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/me").hasRole("CANDIDATE")
                         .requestMatchers(
                                 "/api/auth/login",
                                 "/api/auth/register",

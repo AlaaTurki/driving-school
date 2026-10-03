@@ -20,17 +20,18 @@ import static org.mockito.Mockito.when;
 class CandidateRegistrationServiceTest {
 
     private final UserRepository userRepository = mock(UserRepository.class);
-    private final CandidateProfileRepository candidateProfileRepository = mock(CandidateProfileRepository.class);
+    private final CandidateRepository candidateRepository = mock(CandidateRepository.class);
     private final PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
     private final CandidateRegistrationService service = new CandidateRegistrationService(
             userRepository,
-            candidateProfileRepository,
+            candidateRepository,
             passwordEncoder
     );
 
     @Test
-    void registerCreatesCandidateAccountAndProfile() {
+    void registerCreatesLinkedCandidateAccountAndProfile() {
         when(userRepository.existsByEmailIgnoreCase("candidate@example.com")).thenReturn(false);
+        when(candidateRepository.existsByEmailIgnoreCase("candidate@example.com")).thenReturn(false);
         when(passwordEncoder.encode("strong-password")).thenReturn("hashed-password");
         when(userRepository.saveAndFlush(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -43,19 +44,26 @@ class CandidateRegistrationServiceTest {
 
         var userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).saveAndFlush(userCaptor.capture());
-        assertThat(userCaptor.getValue().getEmail()).isEqualTo("candidate@example.com");
-        assertThat(userCaptor.getValue().getPasswordHash()).isEqualTo("hashed-password");
-        assertThat(userCaptor.getValue().getRoles()).containsExactly(Role.CANDIDATE);
+        User user = userCaptor.getValue();
+        assertThat(user.getEmail()).isEqualTo("candidate@example.com");
+        assertThat(user.getPasswordHash()).isEqualTo("hashed-password");
+        assertThat(user.getRoles()).containsExactly(Role.CANDIDATE);
 
-        var profileCaptor = ArgumentCaptor.forClass(CandidateProfile.class);
-        verify(candidateProfileRepository).save(profileCaptor.capture());
-        assertThat(profileCaptor.getValue().getFullName()).isEqualTo("Candidate Name");
-        assertThat(profileCaptor.getValue().getPhone()).isEqualTo("+216 12 345 678");
+        var candidateCaptor = ArgumentCaptor.forClass(Candidate.class);
+        verify(candidateRepository).save(candidateCaptor.capture());
+        Candidate candidate = candidateCaptor.getValue();
+        assertThat(candidate.getUser()).isSameAs(user);
+        assertThat(candidate.getFirstName()).isEqualTo("Candidate");
+        assertThat(candidate.getLastName()).isEqualTo("Name");
+        assertThat(candidate.getEmail()).isEqualTo("candidate@example.com");
+        assertThat(candidate.getPhone()).isEqualTo("+216 12 345 678");
+        assertThat(candidate.getStatus()).isEqualTo(CandidateStatus.ACTIVE);
     }
 
     @Test
-    void registerRejectsAnExistingEmailBeforeCreatingAnAccount() {
-        when(userRepository.existsByEmailIgnoreCase("candidate@example.com")).thenReturn(true);
+    void registerRejectsAnExistingAccountOrUnlinkedCandidate() {
+        when(userRepository.existsByEmailIgnoreCase("candidate@example.com")).thenReturn(false);
+        when(candidateRepository.existsByEmailIgnoreCase("candidate@example.com")).thenReturn(true);
 
         assertThatThrownBy(() -> service.register(new RegistrationRequest(
                 "Candidate Name",
@@ -65,6 +73,5 @@ class CandidateRegistrationServiceTest {
         ))).isInstanceOf(EmailAlreadyRegisteredException.class);
 
         verify(userRepository, never()).saveAndFlush(any(User.class));
-        verify(candidateProfileRepository, never()).save(any(CandidateProfile.class));
     }
 }

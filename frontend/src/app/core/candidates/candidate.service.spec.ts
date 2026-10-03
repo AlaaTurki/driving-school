@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { UpdateCandidateRolesRequest } from './candidate.models';
+import { Candidate, CandidatePage, UpdateCandidateRolesRequest } from './candidate.models';
 import { CandidateService } from './candidate.service';
 
 describe('CandidateService', () => {
@@ -18,59 +18,68 @@ describe('CandidateService', () => {
 
   afterEach(() => httpTesting.verify());
 
-  it('loads the candidate list', () => {
-    const candidates = [{
+  it('loads a server-filtered candidate page', () => {
+    const candidate: Candidate = {
       id: 'candidate-id',
-      fullName: 'Candidate Name',
+      userId: 'user-id',
+      firstName: 'Candidate',
+      lastName: 'Name',
       email: 'candidate@example.com',
-      roles: ['CANDIDATE'],
       phone: '+216 12 345 678',
-      status: 'ACTIVE' as const,
-      registeredAt: '2026-10-03T11:00:00Z',
-    }];
-
-    service.findAll().subscribe((result) => expect(result).toEqual(candidates));
-    const request = httpTesting.expectOne('/api/candidates');
-    expect(request.request.method).toBe('GET');
-    request.flush(candidates);
-  });
-
-  it('updates the candidate profile and status', () => {
-    const changes = { fullName: 'Updated Name', phone: '+216 98 765 432', status: 'INACTIVE' as const };
-
-    service.update('candidate-id', changes).subscribe((result) => {
-      expect(result.fullName).toBe('Updated Name');
-      expect(result.status).toBe('INACTIVE');
-    });
-    const request = httpTesting.expectOne('/api/candidates/candidate-id');
-    expect(request.request.method).toBe('PUT');
-    expect(request.request.body).toEqual(changes);
-    request.flush({
-      id: 'candidate-id',
-      ...changes,
-      email: 'candidate@example.com',
+      dateOfBirth: null,
+      address: null,
+      registrationDate: '2026-10-03',
+      status: 'ACTIVE',
+      notes: null,
+      createdAt: '2026-10-03T11:00:00Z',
+      updatedAt: '2026-10-03T11:00:00Z',
       roles: ['CANDIDATE'],
-      registeredAt: '2026-10-03T11:00:00Z',
-    });
+    };
+    const page: CandidatePage = {
+      content: [candidate],
+      totalElements: 1,
+      totalPages: 1,
+      number: 0,
+      size: 20,
+      first: true,
+      last: true,
+    };
+
+    service.findAll({ search: 'candidate', status: 'ACTIVE', page: 0, size: 20 })
+      .subscribe((result) => expect(result).toEqual(page));
+    const request = httpTesting.expectOne((req) => req.url === '/api/candidates');
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('search')).toBe('candidate');
+    expect(request.request.params.get('status')).toBe('ACTIVE');
+    expect(request.request.params.get('page')).toBe('0');
+    expect(request.request.params.get('size')).toBe('20');
+    request.flush(page);
   });
 
-  it('updates candidate roles', () => {
+  it('updates linked account roles', () => {
     const changes: UpdateCandidateRolesRequest = { roles: ['INSTRUCTOR', 'CANDIDATE'] };
 
     service.updateRoles('candidate-id', changes).subscribe((result) => {
-      expect(result.roles).toEqual(['INSTRUCTOR', 'CANDIDATE']);
+      expect(result.roles).toEqual(changes.roles);
     });
     const request = httpTesting.expectOne('/api/candidates/candidate-id/roles');
     expect(request.request.method).toBe('PUT');
     expect(request.request.body).toEqual(changes);
     request.flush({
       id: 'candidate-id',
-      fullName: 'Candidate Name',
+      userId: 'user-id',
+      firstName: 'Candidate',
+      lastName: 'Name',
       email: 'candidate@example.com',
-      roles: changes.roles,
       phone: '+216 12 345 678',
+      dateOfBirth: null,
+      address: null,
+      registrationDate: '2026-10-03',
       status: 'ACTIVE',
-      registeredAt: '2026-10-03T11:00:00Z',
+      notes: null,
+      createdAt: '2026-10-03T11:00:00Z',
+      updatedAt: '2026-10-03T11:00:00Z',
+      roles: changes.roles,
     });
   });
 });

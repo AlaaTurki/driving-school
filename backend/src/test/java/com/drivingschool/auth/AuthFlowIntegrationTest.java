@@ -10,6 +10,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import com.drivingschool.candidate.CandidateRepository;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -49,6 +50,9 @@ class AuthFlowIntegrationTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private CandidateRepository candidateRepository;
+
     @Test
     void registerLoginAndRefreshRotateHashedRefreshTokens() throws Exception {
         String email = "candidate-" + UUID.randomUUID() + "@example.com";
@@ -67,6 +71,8 @@ class AuthFlowIntegrationTest {
                 .andReturn().getResponse().getContentAsString());
         assertThat(registered.path("accessToken").asText()).isNotBlank();
         assertThat(registered.path("refreshToken").asText()).isNotBlank();
+        assertThat(candidateRepository.findByUser_Id(UUID.fromString(registered.path("userId").asText())))
+                .isPresent();
         Instant accessExpiresAt = Instant.parse(registered.path("expiresAt").asText());
         assertThat(accessExpiresAt).isAfter(Instant.now().plus(Duration.ofMinutes(14)));
         assertThat(accessExpiresAt).isBefore(Instant.now().plus(Duration.ofMinutes(15)).plusSeconds(1));
