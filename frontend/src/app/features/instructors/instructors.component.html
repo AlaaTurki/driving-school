@@ -1,0 +1,180 @@
+<main class="instructors-page">
+  <header class="page-header">
+    <a class="brand" routerLink="/dashboard">
+      <span class="brand-icon"><mat-icon>directions_car</mat-icon></span>
+      <span><strong>Conduite</strong><small>ESPACE DE GESTION</small></span>
+    </a>
+    <div class="header-actions">
+      <a mat-button routerLink="/dashboard"><mat-icon>space_dashboard</mat-icon>Vue d’ensemble</a>
+      <button mat-button type="button" (click)="logout()"><mat-icon>logout</mat-icon>Déconnexion</button>
+    </div>
+  </header>
+
+  <section class="page-content">
+    <p class="eyebrow">ÉQUIPE · GESTION DES PROFILS</p>
+    <div class="title-row">
+      <div>
+        <h1>Moniteurs</h1>
+        <p class="intro">Gérez les comptes, les coordonnées et les numéros de permis de votre équipe.</p>
+      </div>
+      <button mat-flat-button color="primary" type="button" (click)="startCreate()">
+        <mat-icon>person_add</mat-icon>Nouveau moniteur
+      </button>
+    </div>
+
+    @if (errorMessage()) {
+      <p class="notice error" role="alert">{{ errorMessage() }}</p>
+    }
+    @if (successMessage()) {
+      <p class="notice success" role="status">{{ successMessage() }}</p>
+    }
+
+    <section class="instructor-panel" aria-label="Liste des moniteurs">
+      <div class="filters">
+        <label class="search-field">
+          <mat-icon>search</mat-icon>
+          <span class="visually-hidden">Rechercher par nom, e-mail, téléphone ou permis</span>
+          <input
+            type="search"
+            placeholder="Rechercher un moniteur..."
+            [value]="searchTerm()"
+            (input)="onSearch($event)"
+          />
+        </label>
+        <label class="status-filter">
+          <span>Statut</span>
+          <select [value]="statusFilter()" (change)="onStatusChange($event)">
+            <option value="ALL">Tous</option>
+            <option value="ACTIVE">Actifs</option>
+            <option value="INACTIVE">Inactifs</option>
+          </select>
+        </label>
+      </div>
+
+      @if (loading()) {
+        <div class="loading-state"><mat-spinner diameter="32" /><span>Chargement des moniteurs...</span></div>
+      } @else if (instructors().length) {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Nom</th><th>Coordonnées</th><th>Numéro de permis</th><th>Statut</th><th>Créé le</th>
+                <th><span class="visually-hidden">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (instructor of instructors(); track instructor.id) {
+                <tr>
+                  <td><strong>{{ instructor.firstName }} {{ instructor.lastName }}</strong></td>
+                  <td class="contact">
+                    <a [href]="'mailto:' + instructor.email">{{ instructor.email }}</a>
+                    <a [href]="'tel:' + instructor.phone">{{ instructor.phone }}</a>
+                  </td>
+                  <td>{{ instructor.licenseNumber }}</td>
+                  <td>
+                    <span class="status-badge" [class.inactive]="instructor.status === 'INACTIVE'">
+                      {{ statusLabel(instructor.status) }}
+                    </span>
+                  </td>
+                  <td>{{ instructor.createdAt | date:'mediumDate' }}</td>
+                  <td class="row-actions">
+                    <button mat-button type="button" (click)="startEdit(instructor)" [disabled]="!!deletingId()">
+                      <mat-icon>edit</mat-icon>Modifier
+                    </button>
+                    <button mat-button type="button" class="delete-button"
+                      (click)="deleteInstructor(instructor)" [disabled]="!!deletingId()">
+                      @if (deletingId() === instructor.id) {
+                        <mat-spinner diameter="16" />
+                      } @else {
+                        <mat-icon>delete</mat-icon>
+                      }
+                      Supprimer
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <button mat-button type="button" (click)="previousPage()" [disabled]="pageNumber() === 0 || loading()">Précédent</button>
+          <span>Page {{ totalPages() ? pageNumber() + 1 : 0 }} / {{ totalPages() }} · {{ totalElements() }} moniteur{{ totalElements() > 1 ? 's' : '' }}</span>
+          <button mat-button type="button" (click)="nextPage()" [disabled]="pageNumber() + 1 >= totalPages() || loading()">Suivant</button>
+        </div>
+      } @else {
+        <div class="empty-state">
+          <mat-icon>school</mat-icon>
+          <strong>{{ totalElements() ? 'Aucun résultat' : 'Aucun moniteur enregistré' }}</strong>
+          <span>{{ totalElements() ? 'Modifiez votre recherche ou le filtre de statut.' : 'Ajoutez le premier moniteur de votre équipe.' }}</span>
+        </div>
+      }
+    </section>
+
+    @if (formOpen()) {
+      <section class="edit-panel" aria-labelledby="edit-title">
+        <div class="edit-heading">
+          <div>
+            <p class="eyebrow">{{ selectedInstructor() ? 'MODIFIER LE PROFIL' : 'NOUVEAU COMPTE' }}</p>
+            <h2 id="edit-title">
+              {{ selectedInstructor() ? 'Coordonnées de ' + selectedInstructor()?.firstName : 'Créer un moniteur' }}
+            </h2>
+          </div>
+          <button mat-icon-button type="button" aria-label="Fermer le formulaire" (click)="cancelEdit()">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <form (submit)="save($event)">
+          <label>
+            Prénom
+            <input required maxlength="120" autocomplete="given-name"
+              [value]="form().firstName" (input)="setTextField('firstName', $event)" />
+          </label>
+          <label>
+            Nom
+            <input required maxlength="120" autocomplete="family-name"
+              [value]="form().lastName" (input)="setTextField('lastName', $event)" />
+          </label>
+          <label>
+            Téléphone
+            <input required maxlength="30" type="tel" autocomplete="tel"
+              [value]="form().phone" (input)="setTextField('phone', $event)" />
+          </label>
+          <label>
+            E-mail
+            <input required maxlength="320" type="email" autocomplete="email"
+              [value]="form().email" (input)="setTextField('email', $event)" />
+          </label>
+          <label>
+            Numéro de permis
+            <input required maxlength="100"
+              [value]="form().licenseNumber" (input)="setTextField('licenseNumber', $event)" />
+          </label>
+          @if (selectedInstructor()) {
+            <label>
+              Statut
+              <select [value]="form().status" (change)="setStatus($event)">
+                <option value="ACTIVE">Actif</option>
+                <option value="INACTIVE">Inactif</option>
+              </select>
+            </label>
+          } @else {
+            <label>
+              Mot de passe initial
+              <input required minlength="12" maxlength="72" type="password" autocomplete="new-password"
+                [value]="form().initialPassword" (input)="setTextField('initialPassword', $event)" />
+              <small>12 caractères minimum. Le compte sera créé avec le rôle Moniteur.</small>
+            </label>
+          }
+          <div class="edit-actions">
+            <button mat-button type="button" (click)="cancelEdit()" [disabled]="saving()">Annuler</button>
+            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+              @if (saving()) { <mat-spinner diameter="18" /> }
+              @else { {{ selectedInstructor() ? 'Enregistrer les modifications' : 'Créer le compte' }} }
+            </button>
+          </div>
+        </form>
+      </section>
+    }
+  </section>
+</main>

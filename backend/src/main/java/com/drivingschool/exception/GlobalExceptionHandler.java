@@ -6,6 +6,9 @@ import com.drivingschool.candidate.CandidateNotFoundException;
 import com.drivingschool.candidate.CandidateHasNoAccountException;
 import com.drivingschool.candidate.CandidateUserNotFoundException;
 import com.drivingschool.common.api.ApiErrorResponse;
+import com.drivingschool.instructor.InstructorLicenseAlreadyRegisteredException;
+import com.drivingschool.instructor.InstructorNotFoundException;
+import com.drivingschool.instructor.InvalidInstructorPasswordException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -67,6 +70,30 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
         return error(HttpStatus.CONFLICT, exception.getMessage(), request, Map.of());
+    }
+
+    @ExceptionHandler(InstructorNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleInstructorNotFound(
+            InstructorNotFoundException exception,
+            HttpServletRequest request
+    ) {
+        return error(HttpStatus.NOT_FOUND, exception.getMessage(), request, Map.of());
+    }
+
+    @ExceptionHandler(InstructorLicenseAlreadyRegisteredException.class)
+    public ResponseEntity<ApiErrorResponse> handleInstructorLicenseAlreadyRegistered(
+            InstructorLicenseAlreadyRegisteredException exception,
+            HttpServletRequest request
+    ) {
+        return error(HttpStatus.CONFLICT, exception.getMessage(), request, Map.of());
+    }
+
+    @ExceptionHandler(InvalidInstructorPasswordException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidInstructorPassword(
+            InvalidInstructorPasswordException exception,
+            HttpServletRequest request
+    ) {
+        return error(HttpStatus.BAD_REQUEST, exception.getMessage(), request, Map.of());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

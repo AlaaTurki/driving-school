@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { adminGuard } from './core/auth/admin.guard';
 import { authGuard } from './core/auth/auth.guard';
 import { staffGuard } from './core/auth/staff.guard';
 import { DashboardComponent } from './features/dashboard/dashboard.component';
@@ -14,6 +15,12 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/candidates/candidates.component').then((module) => module.CandidatesComponent),
     canActivate: [authGuard, staffGuard],
+  },
+  {
+    path: 'instructors',
+    loadComponent: () =>
+      import('./features/instructors/instructors.component').then((module) => module.InstructorsComponent),
+    canActivate: [authGuard, adminGuard],
   },
   { path: 'dashboard', component: DashboardComponent, canActivate: [authGuard] },
   { path: '**', redirectTo: 'dashboard' },

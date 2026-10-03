@@ -24,6 +24,11 @@
           <mat-icon>group</mat-icon><span>Candidats</span>
         </a>
       }
+      @if (session?.roles?.includes('ADMIN')) {
+        <a class="nav-link" routerLink="/instructors" routerLinkActive="active" ariaCurrentWhenActive="page">
+          <mat-icon>school</mat-icon><span>Moniteurs</span>
+        </a>
+      }
       <span class="nav-link disabled"><mat-icon>calendar_month</mat-icon><span>Planning</span><small>Bientôt</small></span>
       <span class="nav-link disabled"><mat-icon>directions_car</mat-icon><span>Leçons</span><small>Bientôt</small></span>
       <span class="nav-link disabled"><mat-icon>payments</mat-icon><span>Paiements</span><small>Bientôt</small></span>
@@ -124,6 +129,16 @@
           <p class="module-description">Suivez les profils et accompagnez chaque élève vers la réussite.</p>
           <span class="module-state">Gérer les candidats</span>
           <span class="card-decoration"></span>
+          </a>
+        }
+        @if (session?.roles?.includes('ADMIN')) {
+          <a class="module-card schedule" routerLink="/instructors">
+            <div class="module-top"><span class="module-icon"><mat-icon>school</mat-icon></span><span class="module-arrow"><mat-icon>north_east</mat-icon></span></div>
+            <p class="module-number">02 <span>— ÉQUIPE</span></p>
+            <h3>Moniteurs</h3>
+            <p class="module-description">Gérez les comptes, les coordonnées et les permis de votre équipe.</p>
+            <span class="module-state">Gérer les moniteurs</span>
+            <span class="card-decoration"></span>
           </a>
         }
         <article class="module-card schedule">
