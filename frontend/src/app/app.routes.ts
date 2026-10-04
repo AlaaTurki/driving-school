@@ -22,6 +22,12 @@ export const routes: Routes = [
       import('./features/instructors/instructors.component').then((module) => module.InstructorsComponent),
     canActivate: [authGuard, adminGuard],
   },
+  {
+    path: 'vehicles',
+    loadComponent: () =>
+      import('./features/vehicles/vehicles.component').then((module) => module.VehiclesComponent),
+    canActivate: [authGuard, staffGuard],
+  },
   { path: 'dashboard', component: DashboardComponent, canActivate: [authGuard] },
   { path: '**', redirectTo: 'dashboard' },
 ];

@@ -1,12 +1,14 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Observable, catchError, finalize, shareReplay, tap, throwError } from 'rxjs';
 import { AuthSession, LoginRequest, LoginResponse, RegistrationRequest } from './auth.models';
 
 const SESSION_KEY = 'driving-school-auth';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+  private refreshRequest: Observable<LoginResponse> | null = null;
+
   constructor(private readonly http: HttpClient) {}
 
   login(credentials: LoginRequest): Observable<LoginResponse> {
@@ -21,6 +23,36 @@ export class AuthService {
     );
   }
 
+  refreshSession(): Observable<LoginResponse> {
+    if (this.refreshRequest) {
+      return this.refreshRequest;
+    }
+
+    const session = this.getSession();
+    if (!session) {
+      return throwError(() => new Error('No active session to refresh'));
+    }
+
+    let sharedRequest: Observable<LoginResponse>;
+    sharedRequest = this.http.post<LoginResponse>('/api/auth/refresh', {
+      refreshToken: session.refreshToken,
+    }).pipe(
+      tap((nextSession) => sessionStorage.setItem(SESSION_KEY, JSON.stringify(nextSession))),
+      catchError((error: unknown) => {
+        this.logout();
+        return throwError(() => error);
+      }),
+      finalize(() => {
+        if (this.refreshRequest === sharedRequest) {
+          this.refreshRequest = null;
+        }
+      }),
+      shareReplay({ bufferSize: 1, refCount: false }),
+    );
+    this.refreshRequest = sharedRequest;
+    return sharedRequest;
+  }
+
   getSession(): AuthSession | null {
     const serialized = sessionStorage.getItem(SESSION_KEY);
     if (!serialized) {
@@ -33,7 +65,7 @@ export class AuthService {
         !session.accessToken ||
         !session.refreshToken ||
         !session.expiresAt ||
-        Date.parse(session.expiresAt) <= Date.now()
+        !Number.isFinite(Date.parse(session.expiresAt))
       ) {
         this.logout();
         return null;

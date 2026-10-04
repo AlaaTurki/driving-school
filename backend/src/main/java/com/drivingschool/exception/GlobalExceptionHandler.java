@@ -6,9 +6,14 @@ import com.drivingschool.candidate.CandidateNotFoundException;
 import com.drivingschool.candidate.CandidateHasNoAccountException;
 import com.drivingschool.candidate.CandidateUserNotFoundException;
 import com.drivingschool.common.api.ApiErrorResponse;
+import com.drivingschool.circuit.CircuitNameAlreadyExistsException;
+import com.drivingschool.circuit.CircuitNotFoundException;
+import com.drivingschool.circuit.InvalidCircuitPriceException;
 import com.drivingschool.instructor.InstructorLicenseAlreadyRegisteredException;
 import com.drivingschool.instructor.InstructorNotFoundException;
 import com.drivingschool.instructor.InvalidInstructorPasswordException;
+import com.drivingschool.vehicle.VehicleNotFoundException;
+import com.drivingschool.vehicle.VehicleRegistrationAlreadyExistsException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -91,6 +96,46 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidInstructorPasswordException.class)
     public ResponseEntity<ApiErrorResponse> handleInvalidInstructorPassword(
             InvalidInstructorPasswordException exception,
+            HttpServletRequest request
+    ) {
+        return error(HttpStatus.BAD_REQUEST, exception.getMessage(), request, Map.of());
+    }
+
+    @ExceptionHandler(VehicleNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleVehicleNotFound(
+            VehicleNotFoundException exception,
+            HttpServletRequest request
+    ) {
+        return error(HttpStatus.NOT_FOUND, exception.getMessage(), request, Map.of());
+    }
+
+    @ExceptionHandler(VehicleRegistrationAlreadyExistsException.class)
+    public ResponseEntity<ApiErrorResponse> handleVehicleRegistrationAlreadyExists(
+            VehicleRegistrationAlreadyExistsException exception,
+            HttpServletRequest request
+    ) {
+        return error(HttpStatus.CONFLICT, exception.getMessage(), request, Map.of());
+    }
+
+    @ExceptionHandler(CircuitNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleCircuitNotFound(
+            CircuitNotFoundException exception,
+            HttpServletRequest request
+    ) {
+        return error(HttpStatus.NOT_FOUND, exception.getMessage(), request, Map.of());
+    }
+
+    @ExceptionHandler(CircuitNameAlreadyExistsException.class)
+    public ResponseEntity<ApiErrorResponse> handleCircuitNameAlreadyExists(
+            CircuitNameAlreadyExistsException exception,
+            HttpServletRequest request
+    ) {
+        return error(HttpStatus.CONFLICT, exception.getMessage(), request, Map.of());
+    }
+
+    @ExceptionHandler(InvalidCircuitPriceException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidCircuitPrice(
+            InvalidCircuitPriceException exception,
             HttpServletRequest request
     ) {
         return error(HttpStatus.BAD_REQUEST, exception.getMessage(), request, Map.of());

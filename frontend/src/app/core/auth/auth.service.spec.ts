@@ -74,14 +74,60 @@ describe('AuthService', () => {
     request.flush(response);
   });
 
-  it('discards expired sessions', () => {
+  it('keeps an expired access token available so it can be refreshed', () => {
     sessionStorage.setItem('driving-school-auth', JSON.stringify({
       accessToken: 'expired-token',
       refreshToken: 'expired-refresh-token',
       expiresAt: new Date(Date.now() - 60_000).toISOString(),
     }));
 
-    expect(service.getAccessToken()).toBeNull();
+    expect(service.getAccessToken()).toBe('expired-token');
+    expect(service.getSession()?.refreshToken).toBe('expired-refresh-token');
+  });
+
+  it('rotates and stores the refreshed session', () => {
+    sessionStorage.setItem('driving-school-auth', JSON.stringify({
+      accessToken: 'expired-token',
+      refreshToken: 'old-refresh-token',
+      tokenType: 'Bearer',
+      expiresAt: new Date(Date.now() - 60_000).toISOString(),
+      userId: 'user-id',
+      email: 'admin@example.com',
+      roles: ['ADMIN'],
+    }));
+
+    service.refreshSession().subscribe((result) => {
+      expect(result.accessToken).toBe('new-token');
+      expect(service.getAccessToken()).toBe('new-token');
+    });
+
+    const request = httpTesting.expectOne('/api/auth/refresh');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({ refreshToken: 'old-refresh-token' });
+    request.flush({
+      accessToken: 'new-token',
+      refreshToken: 'new-refresh-token',
+      tokenType: 'Bearer',
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      userId: 'user-id',
+      email: 'admin@example.com',
+      roles: ['ADMIN'],
+    });
+  });
+
+  it('clears the session when refresh is rejected', () => {
+    sessionStorage.setItem('driving-school-auth', JSON.stringify({
+      accessToken: 'expired-token',
+      refreshToken: 'invalid-refresh-token',
+      expiresAt: new Date(Date.now() - 60_000).toISOString(),
+    }));
+
+    service.refreshSession().subscribe({ error: () => undefined });
+    httpTesting.expectOne('/api/auth/refresh').flush(
+      { message: 'Invalid refresh token' },
+      { status: 401, statusText: 'Unauthorized' },
+    );
+
     expect(sessionStorage.getItem('driving-school-auth')).toBeNull();
   });
 });

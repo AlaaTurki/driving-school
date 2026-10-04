@@ -29,6 +29,11 @@
           <mat-icon>school</mat-icon><span>Moniteurs</span>
         </a>
       }
+      @if (session?.roles?.includes('ADMIN') || session?.roles?.includes('INSTRUCTOR')) {
+        <a class="nav-link" routerLink="/vehicles" routerLinkActive="active" ariaCurrentWhenActive="page">
+          <mat-icon>directions_car</mat-icon><span>Véhicules</span>
+        </a>
+      }
       <span class="nav-link disabled"><mat-icon>calendar_month</mat-icon><span>Planning</span><small>Bientôt</small></span>
       <span class="nav-link disabled"><mat-icon>directions_car</mat-icon><span>Leçons</span><small>Bientôt</small></span>
       <span class="nav-link disabled"><mat-icon>payments</mat-icon><span>Paiements</span><small>Bientôt</small></span>
@@ -138,6 +143,16 @@
             <h3>Moniteurs</h3>
             <p class="module-description">Gérez les comptes, les coordonnées et les permis de votre équipe.</p>
             <span class="module-state">Gérer les moniteurs</span>
+            <span class="card-decoration"></span>
+          </a>
+        }
+        @if (session?.roles?.includes('ADMIN') || session?.roles?.includes('INSTRUCTOR')) {
+          <a class="module-card payments" routerLink="/vehicles">
+            <div class="module-top"><span class="module-icon"><mat-icon>directions_car</mat-icon></span><span class="module-arrow"><mat-icon>north_east</mat-icon></span></div>
+            <p class="module-number">03 <span>— PARC AUTOMOBILE</span></p>
+            <h3>Véhicules</h3>
+            <p class="module-description">Consultez les véhicules disponibles pour l’auto-école.</p>
+            <span class="module-state">{{ session?.roles?.includes('ADMIN') ? 'Gérer les véhicules' : 'Consulter les véhicules' }}</span>
             <span class="card-decoration"></span>
           </a>
         }
