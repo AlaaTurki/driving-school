@@ -125,6 +125,29 @@ class CandidateSecurityMockMvcTest {
     }
 
     @Test
+    void adminCanUpdateCandidate() throws Exception {
+        UUID id = UUID.randomUUID();
+        String request = """
+                {
+                  "firstName":"Updated",
+                  "lastName":"Candidate",
+                  "phone":"+21612345678",
+                  "email":"updated@example.com",
+                  "registrationDate":"2026-10-03",
+                  "status":"ACTIVE"
+                }
+                """;
+
+        mockMvc.perform(put("/api/candidates/{id}", id)
+                        .with(user("admin").roles("ADMIN"))
+                        .contentType(APPLICATION_JSON).content(request))
+                .andExpect(status().isOk());
+
+        verify(candidateService).update(org.mockito.ArgumentMatchers.eq(id),
+                org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
     void candidateMeEndpointUsesOnlyTheAuthenticatedPrincipalId() throws Exception {
         UUID ownUserId = UUID.randomUUID();
         AppUserDetails principal = new AppUserDetails(

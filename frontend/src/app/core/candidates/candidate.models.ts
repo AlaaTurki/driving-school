@@ -34,6 +34,19 @@ export interface CandidateSearch {
   size: number;
 }
 
+export interface UpdateCandidateRequest {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+  dateOfBirth: string | null;
+  address: string | null;
+  registrationDate: string;
+  status: CandidateStatus;
+  notes: string | null;
+  userId: string | null;
+}
+
 export type UserRole = 'ADMIN' | 'INSTRUCTOR' | 'CANDIDATE';
 
 export interface UpdateCandidateRolesRequest {

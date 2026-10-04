@@ -15,7 +15,9 @@
     <div class="title-row">
       <div>
         <h1>Candidats</h1>
-        <p class="intro">Consultez les candidats et recherchez leurs coordonnées ou leur statut.</p>
+        <p class="intro">
+          {{ isAdmin ? 'Consultez et modifiez les profils des candidats.' : 'Consultez les candidats et recherchez leurs coordonnées ou leur statut.' }}
+        </p>
       </div>
       <span class="total-count">{{ totalElements() }} candidat{{ totalElements() > 1 ? 's' : '' }}</span>
     </div>
@@ -74,6 +76,11 @@
                     {{ statusLabel(candidate.status) }}
                   </span></td>
                   <td>
+                    @if (isAdmin) {
+                      <button mat-button type="button" (click)="editCandidate(candidate)">
+                        <mat-icon>edit</mat-icon>Modifier
+                      </button>
+                    }
                     @if (isAdmin && candidate.userId) {
                       <button mat-button type="button" (click)="editRoles(candidate)"><mat-icon>manage_accounts</mat-icon>Rôles</button>
                     }
@@ -96,6 +103,57 @@
         </div>
       }
     </section>
+
+    @if (editingCandidate(); as candidate) {
+      <section class="edit-panel" aria-labelledby="candidate-edit-title">
+        <div class="edit-heading">
+          <div><p class="eyebrow">PROFIL CANDIDAT</p><h2 id="candidate-edit-title">Modifier — {{ candidate.firstName }} {{ candidate.lastName }}</h2></div>
+          <button mat-icon-button type="button" aria-label="Fermer le formulaire" (click)="cancelCandidateEdit()">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+        <form (ngSubmit)="saveCandidate()">
+          <label>Prénom
+            <input name="firstName" [(ngModel)]="candidateDraft.firstName" required maxlength="120" [disabled]="saving()" />
+          </label>
+          <label>Nom
+            <input name="lastName" [(ngModel)]="candidateDraft.lastName" required maxlength="120" [disabled]="saving()" />
+          </label>
+          <label>Téléphone
+            <input name="phone" [(ngModel)]="candidateDraft.phone" required maxlength="30" [disabled]="saving()" />
+          </label>
+          <label>E-mail
+            <input name="email" type="email" [(ngModel)]="candidateDraft.email" required maxlength="320" [disabled]="saving()" />
+          </label>
+          <label>Date de naissance
+            <input name="dateOfBirth" type="date" [(ngModel)]="candidateDraft.dateOfBirth" [disabled]="saving()" />
+          </label>
+          <label>Adresse
+            <input name="address" [(ngModel)]="candidateDraft.address" maxlength="500" [disabled]="saving()" />
+          </label>
+          <label>Date d’inscription
+            <input name="registrationDate" type="date" [(ngModel)]="candidateDraft.registrationDate" required [disabled]="saving()" />
+          </label>
+          <label>Statut
+            <select name="status" [(ngModel)]="candidateDraft.status" required [disabled]="saving()">
+              <option value="ACTIVE">Actif</option>
+              <option value="INACTIVE">Inactif</option>
+              <option value="COMPLETED">Terminé</option>
+              <option value="SUSPENDED">Suspendu</option>
+            </select>
+          </label>
+          <label class="notes-field">Notes
+            <textarea name="notes" [(ngModel)]="candidateDraft.notes" maxlength="10000" rows="3" [disabled]="saving()"></textarea>
+          </label>
+          <div class="edit-actions">
+            <button mat-button type="button" (click)="cancelCandidateEdit()">Annuler</button>
+            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+              @if (saving()) { <mat-spinner diameter="18" /> } @else { Enregistrer les modifications }
+            </button>
+          </div>
+        </form>
+      </section>
+    }
 
     @if (selectedCandidate(); as candidate) {
       <section class="edit-panel" aria-labelledby="edit-title">

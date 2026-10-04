@@ -1,6 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
@@ -8,8 +9,26 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../core/auth/auth.service';
 import { AuthSession } from '../../core/auth/auth.models';
-import { Candidate, CandidateStatus, UserRole } from '../../core/candidates/candidate.models';
+import {
+  Candidate,
+  CandidateStatus,
+  UpdateCandidateRequest,
+  UserRole,
+} from '../../core/candidates/candidate.models';
 import { CandidateService } from '../../core/candidates/candidate.service';
+
+interface CandidateDraft {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+  dateOfBirth: string;
+  address: string;
+  registrationDate: string;
+  status: CandidateStatus;
+  notes: string;
+  userId: string | null;
+}
 
 function isUserRole(role: string): role is UserRole {
   return role === 'ADMIN' || role === 'INSTRUCTOR' || role === 'CANDIDATE';
@@ -18,7 +37,7 @@ function isUserRole(role: string): role is UserRole {
 @Component({
   selector: 'app-candidates',
   standalone: true,
-  imports: [DatePipe, RouterLink, MatButtonModule, MatIconModule, MatProgressSpinnerModule],
+  imports: [DatePipe, FormsModule, RouterLink, MatButtonModule, MatIconModule, MatProgressSpinnerModule],
   templateUrl: './candidates.component.html',
   styleUrl: './candidates.component.scss',
 })
@@ -31,6 +50,19 @@ export class CandidatesComponent {
   readonly searchTerm = signal('');
   readonly statusFilter = signal<CandidateStatus | 'ALL'>('ALL');
   readonly selectedCandidate = signal<Candidate | null>(null);
+  readonly editingCandidate = signal<Candidate | null>(null);
+  readonly candidateDraft: CandidateDraft = {
+    firstName: '',
+    lastName: '',
+    phone: '',
+    email: '',
+    dateOfBirth: '',
+    address: '',
+    registrationDate: '',
+    status: 'ACTIVE',
+    notes: '',
+    userId: null,
+  };
   readonly pageNumber = signal(0);
   readonly totalPages = signal(0);
   readonly totalElements = signal(0);
@@ -122,6 +154,55 @@ export class CandidatesComponent {
     this.errorMessage.set('');
     this.successMessage.set('');
     this.selectedRoles.set(this.rolesFor(candidate));
+  }
+
+  editCandidate(candidate: Candidate): void {
+    this.editingCandidate.set(candidate);
+    this.errorMessage.set('');
+    this.successMessage.set('');
+    Object.assign(this.candidateDraft, {
+      firstName: candidate.firstName,
+      lastName: candidate.lastName,
+      phone: candidate.phone,
+      email: candidate.email,
+      dateOfBirth: candidate.dateOfBirth ?? '',
+      address: candidate.address ?? '',
+      registrationDate: candidate.registrationDate,
+      status: candidate.status,
+      notes: candidate.notes ?? '',
+      userId: candidate.userId,
+    });
+  }
+
+  cancelCandidateEdit(): void {
+    this.editingCandidate.set(null);
+  }
+
+  saveCandidate(): void {
+    const candidate = this.editingCandidate();
+    if (!this.isAdmin || !candidate || this.saving()) {
+      return;
+    }
+
+    const changes: UpdateCandidateRequest = {
+      ...this.candidateDraft,
+      dateOfBirth: this.candidateDraft.dateOfBirth || null,
+      address: this.candidateDraft.address || null,
+      notes: this.candidateDraft.notes || null,
+    };
+    this.errorMessage.set('');
+    this.successMessage.set('');
+    this.saving.set(true);
+    this.candidateService.update(candidate.id, changes)
+      .pipe(finalize(() => this.saving.set(false)))
+      .subscribe({
+        next: (updated) => {
+          this.candidates.update((items) => items.map((item) => item.id === updated.id ? updated : item));
+          this.editingCandidate.set(updated);
+          this.successMessage.set(`Candidat ${updated.firstName} ${updated.lastName} mis à jour.`);
+        },
+        error: (error: unknown) => this.errorMessage.set(this.getErrorMessage(error)),
+      });
   }
 
   cancelEdit(): void {

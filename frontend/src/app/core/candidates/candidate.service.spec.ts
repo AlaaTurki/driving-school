@@ -1,7 +1,12 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { Candidate, CandidatePage, UpdateCandidateRolesRequest } from './candidate.models';
+import {
+  Candidate,
+  CandidatePage,
+  UpdateCandidateRequest,
+  UpdateCandidateRolesRequest,
+} from './candidate.models';
 import { CandidateService } from './candidate.service';
 
 describe('CandidateService', () => {
@@ -80,6 +85,35 @@ describe('CandidateService', () => {
       createdAt: '2026-10-03T11:00:00Z',
       updatedAt: '2026-10-03T11:00:00Z',
       roles: changes.roles,
+    });
+  });
+
+  it('updates candidate profile information', () => {
+    const changes: UpdateCandidateRequest = {
+      firstName: 'Updated',
+      lastName: 'Name',
+      phone: '+216 11 222 333',
+      email: 'updated@example.com',
+      dateOfBirth: '2000-01-02',
+      address: 'New address',
+      registrationDate: '2026-10-03',
+      status: 'ACTIVE',
+      notes: 'Updated notes',
+      userId: 'user-id',
+    };
+
+    service.update('candidate-id', changes).subscribe((result) => {
+      expect(result.firstName).toBe('Updated');
+    });
+    const request = httpTesting.expectOne('/api/candidates/candidate-id');
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body).toEqual(changes);
+    request.flush({
+      id: 'candidate-id',
+      ...changes,
+      createdAt: '2026-10-03T11:00:00Z',
+      updatedAt: '2026-10-03T11:00:00Z',
+      roles: ['CANDIDATE'],
     });
   });
 });
