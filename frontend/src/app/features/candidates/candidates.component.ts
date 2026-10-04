@@ -263,6 +263,26 @@ export class CandidatesComponent {
       return 'Le serveur est injoignable. Vérifiez que l’API est démarrée.';
     }
 
+    if (error instanceof HttpErrorResponse && error.status === 400) {
+      const body = error.error as { message?: unknown; validationErrors?: unknown };
+      if (typeof body?.validationErrors === 'object' && body.validationErrors !== null) {
+        const details = Object.entries(body.validationErrors)
+          .filter((entry): entry is [string, string] => typeof entry[1] === 'string')
+          .map(([field, message]) => `${field}: ${message}`)
+          .join(', ');
+        if (details) {
+          return details;
+        }
+      }
+      if (typeof body?.message === 'string') {
+        return body.message;
+      }
+    }
+
+    if (error instanceof HttpErrorResponse && error.status === 409) {
+      return 'Cette adresse e-mail est déjà utilisée.';
+    }
+
     if (error instanceof HttpErrorResponse && error.status === 403) {
       return 'Vous ne disposez pas des droits nécessaires pour consulter les candidats.';
     }
