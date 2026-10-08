@@ -1,4 +1,4 @@
-# Driving School API — Phase 1
+# Driving School API
 
 Socle REST Spring Boot 3 / Java 21 : PostgreSQL, Flyway, Spring Security, JWT et authentification. Les rôles sont `ADMIN`, `INSTRUCTOR` et `CANDIDATE`. L'inscription publique crée exclusivement des comptes `CANDIDATE`.
 
@@ -72,4 +72,4 @@ L'API `GET /api/candidates` liste les profils candidats et `PUT /api/candidates/
 Postman peut envoyer la même requête en `POST http://localhost:8080/api/auth/login`, avec `Content-Type: application/json`. Une connexion valide renvoie un `accessToken`, un `refreshToken`, le type `Bearer`, l'expiration, l'identifiant utilisateur et ses rôles. Stocker le refresh token de façon sécurisée côté client ; seul son hash est conservé en base.
 
 Les erreurs de validation renvoient un JSON structuré avec le statut, le chemin et les champs invalides. Un email ou mot de passe incorrect renvoie `401`.
-# driving-school
+
