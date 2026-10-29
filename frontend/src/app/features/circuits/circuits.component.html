@@ -1,0 +1,97 @@
+<main class="circuits-page">
+  <section class="page-content">
+    <p class="eyebrow">ORGANISATION · CIRCUITS DE CONDUITE</p>
+    <div class="title-row">
+      <div>
+        <h1>Circuits</h1>
+        <p class="intro">{{ isAdmin ? 'Gérez les parcours et leurs tarifs.' : 'Consultez les parcours de conduite disponibles.' }}</p>
+      </div>
+      <div class="title-actions">
+        <span class="total-count">{{ totalElements() }} circuit{{ totalElements() === 1 ? '' : 's' }}</span>
+        @if (isAdmin) {
+          <button mat-flat-button color="primary" type="button" (click)="startCreate()"><mat-icon>add</mat-icon>Nouveau circuit</button>
+        }
+      </div>
+    </div>
+
+    @if (errorMessage()) { <p class="notice error" role="alert">{{ errorMessage() }}</p> }
+    @if (successMessage()) { <p class="notice success" role="status">{{ successMessage() }}</p> }
+
+    <section class="circuit-panel" aria-label="Liste des circuits">
+      <div class="filters">
+        <app-search-bar placeholder="Rechercher un circuit..." (searchChange)="onSearchChange($event)" />
+        <label class="active-filter">Disponibilité
+          <select [value]="activeFilter()" (change)="onActiveChange($event)">
+            <option value="ALL">Tous</option><option value="true">Actifs</option><option value="false">Inactifs</option>
+          </select>
+        </label>
+      </div>
+      @if (loading()) {
+        <div class="loading-state"><mat-spinner diameter="32" /><span>Chargement des circuits...</span></div>
+      } @else if (circuits().length) {
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th><button class="sort-button" type="button" (click)="toggleSort()">Nom ⇅</button></th>
+              <th>Emplacement</th><th>Description</th><th>Prix</th><th>Statut</th><th>Actions</th>
+            </tr></thead>
+            <tbody>
+              @for (circuit of sortedCircuits(); track circuit.id) {
+                <tr>
+                  <td><strong>{{ circuit.name }}</strong></td><td>{{ circuit.location || '—' }}</td>
+                  <td class="description">{{ circuit.description || '—' }}</td><td>{{ circuit.price | dtCurrency }}</td>
+                  <td><span class="status-badge" [class.inactive]="!circuit.active">{{ circuit.active ? 'Actif' : 'Inactif' }}</span></td>
+                  <td class="row-actions">
+                    @if (isAdmin) {
+                      <button mat-button type="button" (click)="startEdit(circuit)" [disabled]="!!deletingId()"><mat-icon>edit</mat-icon>Modifier</button>
+                      <button mat-button type="button" (click)="toggleActive(circuit)" [disabled]="saving() || !!deletingId()">
+                        <mat-icon>{{ circuit.active ? 'pause_circle' : 'play_circle' }}</mat-icon>{{ circuit.active ? 'Désactiver' : 'Activer' }}
+                      </button>
+                      <button mat-button class="delete-button" type="button" (click)="deleteCircuit(circuit)" [disabled]="!!deletingId()"><mat-icon>delete</mat-icon>Supprimer</button>
+                    } @else { — }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <button mat-button type="button" (click)="previousPage()" [disabled]="pageNumber() === 0 || loading()">Précédent</button>
+          <span>Page {{ totalPages() ? pageNumber() + 1 : 0 }} / {{ totalPages() }} · {{ totalElements() }} circuit{{ totalElements() === 1 ? '' : 's' }}</span>
+          <button mat-button type="button" (click)="nextPage()" [disabled]="pageNumber() + 1 >= totalPages() || loading()">Suivant</button>
+        </div>
+      } @else {
+        <div class="empty-state"><mat-icon>alt_route</mat-icon>
+          <strong>{{ totalElements() ? 'Aucun résultat' : 'Aucun circuit' }}</strong>
+          <span>{{ totalElements() ? 'Modifiez la recherche ou le filtre.' : 'Les circuits apparaîtront ici.' }}</span>
+        </div>
+      }
+    </section>
+
+    @if (formOpen() && isAdmin) {
+      <section class="edit-panel" aria-labelledby="circuit-form-title">
+        <div class="edit-heading">
+          <div><p class="eyebrow">CIRCUIT DE CONDUITE</p><h2 id="circuit-form-title">{{ selectedCircuit() ? 'Modifier le circuit' : 'Créer un circuit' }}</h2></div>
+          <button mat-icon-button type="button" aria-label="Fermer" (click)="cancelEdit()"><mat-icon>close</mat-icon></button>
+        </div>
+        <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+          <label>Nom<input formControlName="name" maxlength="160" />
+            @if (form.controls['name'].touched && form.controls['name'].invalid) { <small class="field-error">Le nom est obligatoire (160 caractères maximum).</small> }
+          </label>
+          <label>Emplacement<input formControlName="location" maxlength="200" /></label>
+          <label>Prix en DT<input formControlName="price" type="number" min="0" max="9999999.999" step="0.001" />
+            @if (form.controls['price'].touched && form.controls['price'].invalid) { <small class="field-error">Prix requis, positif, 7 chiffres entiers et 3 décimales maximum.</small> }
+          </label>
+          <label class="wide">Description<textarea formControlName="description" maxlength="10000" rows="3"></textarea></label>
+          @if (selectedCircuit()) { <label>Disponibilité<select formControlName="active"><option [ngValue]="true">Actif</option><option [ngValue]="false">Inactif</option></select></label> }
+          <div class="edit-actions">
+            <button mat-button type="button" (click)="cancelEdit()" [disabled]="saving()">Annuler</button>
+            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+              @if (saving()) { <mat-spinner diameter="18" /> } @else { {{ selectedCircuit() ? 'Enregistrer' : 'Créer le circuit' }} }
+            </button>
+          </div>
+        </form>
+      </section>
+    }
+  </section>
+</main>

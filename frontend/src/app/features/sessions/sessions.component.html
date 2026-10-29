@@ -1,0 +1,169 @@
+<main class="sessions-page">
+  <section class="page-content">
+    <p class="eyebrow">ORGANISATION · SUIVI DES LEÇONS</p>
+    <div class="title-row">
+      <div><h1>Séances</h1><p class="intro">Planifiez les leçons, suivez leur statut et consultez les règlements.</p></div>
+      <button mat-flat-button color="primary" type="button" (click)="startCreate()">
+        <mat-icon>add</mat-icon>Nouvelle séance
+      </button>
+    </div>
+
+    @if (errorMessage() && !(formOpen() && formConflicts().length)) {
+      <p class="notice error" role="alert">{{ errorMessage() }}</p>
+    }
+    @if (successMessage()) { <p class="notice success" role="status">{{ successMessage() }}</p> }
+
+    <section class="filters" aria-label="Filtres des séances">
+      <label>Du<input type="date" [(ngModel)]="filters.dateFrom" /></label>
+      <label>Au<input type="date" [(ngModel)]="filters.dateTo" /></label>
+      <label>Candidat
+        <select [(ngModel)]="filters.candidateId">
+          <option value="">Tous les candidats</option>
+          @for (candidate of candidates(); track candidate.id) {
+            <option [value]="candidate.id">{{ candidate.firstName }} {{ candidate.lastName }}</option>
+          }
+        </select>
+      </label>
+      @if (isAdmin) {
+        <label>Moniteur
+          <select [(ngModel)]="filters.instructorId">
+            <option value="">Tous les moniteurs</option>
+            @for (instructor of instructors(); track instructor.id) {
+              <option [value]="instructor.id">{{ instructor.firstName }} {{ instructor.lastName }}</option>
+            }
+          </select>
+        </label>
+      }
+      <label>Statut
+        <select [(ngModel)]="filters.status">
+          <option value="">Tous</option>
+          @for (status of statuses; track status) { <option [value]="status">{{ statusLabel(status) }}</option> }
+        </select>
+      </label>
+      <label>Circuit
+        <select [(ngModel)]="filters.circuitId">
+          <option value="">Tous les circuits</option>
+          @for (circuit of circuits(); track circuit.id) { <option [value]="circuit.id">{{ circuit.name }}</option> }
+        </select>
+      </label>
+      <button mat-flat-button color="primary" type="button" (click)="applyFilters()" [disabled]="loading()">
+        <mat-icon>search</mat-icon>Filtrer
+      </button>
+    </section>
+
+    @if (formOpen()) {
+      <section class="session-form">
+        <div class="section-heading">
+          <div><p class="eyebrow">{{ editingId() ? 'MODIFICATION' : 'NOUVELLE LEÇON' }}</p>
+            <h2>{{ editingId() ? 'Modifier la séance' : 'Créer une séance' }}</h2></div>
+          <button mat-button type="button" (click)="formOpen.set(false)">Fermer</button>
+        </div>
+        @if (loadingOptions()) { <div class="loading-state"><mat-spinner diameter="22" />Chargement des ressources…</div> }
+        <form (ngSubmit)="save()">
+          <label>Candidat
+            <select name="candidateId" [(ngModel)]="draft.candidateId" required>
+              <option value="">Sélectionner un candidat</option>
+              @for (candidate of candidates(); track candidate.id) {
+                <option [value]="candidate.id">{{ candidate.firstName }} {{ candidate.lastName }}</option>
+              }
+            </select>
+          </label>
+          @if (isAdmin) {
+            <label>Moniteur
+              <select name="instructorId" [(ngModel)]="draft.instructorId" required>
+                <option value="">Sélectionner un moniteur</option>
+                @for (instructor of instructors(); track instructor.id) {
+                  <option [value]="instructor.id">{{ instructor.firstName }} {{ instructor.lastName }}</option>
+                }
+              </select>
+            </label>
+          } @else {
+            <label>Moniteur <input value="Votre compte moniteur" disabled /></label>
+          }
+          <label>Véhicule
+            <select name="vehicleId" [(ngModel)]="draft.vehicleId">
+              <option value="">Aucun véhicule</option>
+              @for (vehicle of vehicles(); track vehicle.id) {
+                <option [value]="vehicle.id">{{ vehicle.registrationNumber }} · {{ vehicle.brand }} {{ vehicle.model }}</option>
+              }
+            </select>
+          </label>
+          <label>Circuit
+            <select name="circuitId" [(ngModel)]="draft.circuitId" (ngModelChange)="onCircuitChange()" [disabled]="!!editingId()">
+              <option value="">Aucun circuit</option>
+              @for (circuit of circuits(); track circuit.id) { <option [value]="circuit.id">{{ circuit.name }}</option> }
+            </select>
+          </label>
+          <label>Date<input name="sessionDate" type="date" [(ngModel)]="draft.sessionDate" required /></label>
+          <label>Heure de début<input name="startTime" type="time" [(ngModel)]="draft.startTime" required /></label>
+          <label>Heure de fin<input name="endTime" type="time" [(ngModel)]="draft.endTime" required /></label>
+          <label>Prix (DT)<input name="price" type="number" min="0" step="0.001" [(ngModel)]="draft.price" [disabled]="!!editingId()" /></label>
+          <label class="wide">Remarque<textarea name="notes" rows="2" maxlength="10000" [(ngModel)]="draft.notes"></textarea></label>
+          @if (formConflicts().length) {
+            <div id="conflict-alert" class="conflict-alert" role="alert">
+              <div class="conflict-alert-heading"><mat-icon>event_busy</mat-icon><strong>Créneau indisponible</strong></div>
+              <ul>
+                @for (conflict of formConflicts(); track $index) { <li>{{ conflict }}</li> }
+              </ul>
+              <p>Choisissez un autre horaire, un autre moniteur ou un autre véhicule.</p>
+            </div>
+          }
+          <div class="form-actions">
+            <button mat-button type="button" (click)="formOpen.set(false)">Annuler</button>
+            <button mat-flat-button color="primary" type="submit" [disabled]="saving() || loadingOptions()">
+              @if (saving()) { <mat-spinner diameter="18" /> } @else { {{ editingId() ? 'Enregistrer' : 'Créer la séance' }} }
+            </button>
+          </div>
+        </form>
+      </section>
+    }
+
+    <section class="sessions-panel">
+      <header class="section-heading">
+        <div><p class="eyebrow">RÉSULTATS</p><h2>{{ totalElements() }} séance{{ totalElements() > 1 ? 's' : '' }}</h2></div>
+      </header>
+      @if (loading()) {
+        <div class="loading-state"><mat-spinner diameter="28" />Chargement des séances…</div>
+      } @else if (sessions().length) {
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Jour</th><th>Date</th><th>Heure</th><th>Heures</th><th>Candidat</th><th>Moniteur</th><th>Circuit</th><th>Prix</th><th>Statut</th><th>Payé</th><th>Reste à payer</th><th>Actions</th></tr></thead>
+            <tbody>
+              @for (session of sessions(); track session.id) {
+                <tr>
+                  <td>{{ weekdayLabel(session.sessionDate) }}</td>
+                  <td>{{ session.sessionDate | localDate }}</td>
+                  <td>{{ session.startTime | localTime }}–{{ session.endTime | localTime }}</td>
+                  <td>{{ session.durationHours }} h</td>
+                  <td>{{ session.candidate.name }}</td>
+                  <td>{{ session.instructor.name }}</td>
+                  <td>{{ session.circuit?.name || '—' }}</td>
+                  <td>{{ session.price | dtCurrency }}</td>
+                  <td><span class="status-badge" [class]="session.status.toLowerCase()">{{ statusLabel(session.status) }}</span></td>
+                  <td>{{ session.paidAmount | dtCurrency }}</td>
+                  <td [class.credit]="(session.remaining ?? 0) < 0">{{ session.remaining | dtCurrency }}</td>
+                  <td class="row-actions">
+                    <button mat-button type="button" (click)="startEdit(session)" [disabled]="saving()">Modifier</button>
+                    @if (session.status === 'PLANNED') {
+                      <button mat-button type="button" (click)="changeStatus(session, 'DONE')" [disabled]="saving()">Terminée</button>
+                      <button mat-button type="button" (click)="changeStatus(session, 'ABSENT')" [disabled]="saving()">Absent</button>
+                      <button mat-button type="button" (click)="changeStatus(session, 'CANCELLED')" [disabled]="saving()">Annuler</button>
+                    }
+                    @if (isAdmin) { <button mat-button class="delete-button" type="button" (click)="delete(session)" [disabled]="saving()">Supprimer</button> }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <div class="empty-state"><mat-icon>event_busy</mat-icon><strong>Aucune séance trouvée</strong><span>Modifiez les filtres ou créez une séance.</span></div>
+      }
+      <footer class="pagination">
+        <button mat-button type="button" (click)="changePage(-1)" [disabled]="page() === 0 || loading()">Précédent</button>
+        <span>Page {{ totalPages() ? page() + 1 : 0 }} / {{ totalPages() }}</span>
+        <button mat-button type="button" (click)="changePage(1)" [disabled]="page() + 1 >= totalPages() || loading()">Suivant</button>
+      </footer>
+    </section>
+  </section>
+</main>

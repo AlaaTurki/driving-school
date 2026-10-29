@@ -1,0 +1,184 @@
+<div class="schedule-page">
+  <main class="page-content">
+    <div class="title-row">
+      <div>
+        <p class="eyebrow">ORGANISATION DES LEÇONS</p>
+        <h1>Planning</h1>
+        <p class="intro">
+          {{ isCandidate ? 'Retrouvez vos prochaines leçons.' : 'Visualisez les séances et repérez les disponibilités.' }}
+        </p>
+      </div>
+      <span class="total-count">{{ scheduleCount() }} séance{{ scheduleCount() > 1 ? 's' : '' }} affichée{{ scheduleCount() > 1 ? 's' : '' }}</span>
+    </div>
+
+    @if (isAdmin && instructors().length) {
+      <label class="instructor-filter">
+        <span>Moniteur</span>
+        <select [value]="selectedInstructorId()" (change)="onInstructorChange($event)">
+          <option value="">Tous les moniteurs</option>
+          @for (instructor of instructors(); track instructor.id) {
+            <option [value]="instructor.id">{{ instructor.firstName }} {{ instructor.lastName }}</option>
+          }
+        </select>
+        @if (loadingInstructors()) { <small>Chargement des moniteurs…</small> }
+      </label>
+    }
+
+    @if (errorMessage()) {
+      <div class="notice error" role="alert">
+        <span>{{ errorMessage() }}</span>
+        <button mat-button type="button" (click)="loadSchedule()">Réessayer</button>
+      </div>
+    }
+    @if (bookingSuccess()) { <p class="notice success" role="status">{{ bookingSuccess() }}</p> }
+
+    @if (!isCandidate) {
+      <section class="calendar-panel">
+        <div class="calendar-toolbar">
+          <div class="month-title"><mat-icon>calendar_month</mat-icon><strong>{{ weekLabel() }}</strong></div>
+          <div class="week-controls">
+            <button mat-button type="button" [class.selected-view]="viewMode() === 'day'" (click)="setView('day')">Jour</button>
+            <button mat-button type="button" [class.selected-view]="viewMode() === 'week'" (click)="setView('week')">Semaine</button>
+            <button mat-stroked-button type="button" (click)="changeWeek(-1)" aria-label="Semaine précédente">
+              <mat-icon>chevron_left</mat-icon>
+            </button>
+            <button mat-button type="button" (click)="goToCurrentWeek()">
+              Semaine actuelle
+            </button>
+            <button mat-stroked-button type="button" (click)="changeWeek(1)" aria-label="Semaine suivante">
+              <mat-icon>chevron_right</mat-icon>
+            </button>
+          </div>
+        </div>
+        @if (loading()) {
+          <div class="loading-state"><mat-spinner diameter="28"></mat-spinner><span>Chargement du planning…</span></div>
+        } @else {
+          <div class="week-grid" [class.day-view]="viewMode() === 'day'">
+            @for (day of days(); track day.date) {
+              <section class="day-column" [class.today]="day.isToday">
+                <header class="day-heading">
+                  <span>{{ day.label }}</span><strong>{{ day.number }}</strong>
+                </header>
+                <div class="day-sessions">
+                  @for (lesson of day.sessions; track lesson.sessionId) {
+                    <article class="lesson-card" [class.cancelled]="lesson.status === 'CANCELLED'">
+                      <strong class="lesson-time">{{ lesson.startTime | localTime }} – {{ lesson.endTime | localTime }}</strong>
+                      <span class="lesson-person">{{ isAdmin ? lesson.instructorName : lesson.candidateName }}</span>
+                      <span class="lesson-detail">{{ isAdmin ? lesson.candidateName : lesson.circuit || 'Séance de conduite' }}</span>
+                      @if (lesson.vehicle) { <span class="lesson-detail"><mat-icon>directions_car</mat-icon>{{ lesson.vehicle }}</span> }
+                      <span class="status-badge" [class]="lesson.status.toLowerCase()">{{ statusLabel(lesson.status) }}</span>
+                    </article>
+                  } @empty {
+                    <p class="day-empty">Aucune séance</p>
+                  }
+                </div>
+              </section>
+            }
+          </div>
+        }
+      </section>
+    } @else {
+      <section class="candidate-panel">
+        <div class="panel-heading">
+          <div><p class="eyebrow">À VENIR</p><h2>Mes prochaines leçons</h2></div>
+          <mat-icon>event_available</mat-icon>
+        </div>
+        @if (loading()) {
+          <div class="loading-state"><mat-spinner diameter="28"></mat-spinner><span>Chargement de vos leçons…</span></div>
+        } @else if (!days().length) {
+          <div class="empty-state"><mat-icon>event_busy</mat-icon><strong>Aucune leçon planifiée</strong><span>Vos prochaines séances apparaîtront ici.</span></div>
+        } @else {
+          <div class="candidate-list">
+            @for (day of days(); track day.date) {
+              @for (lesson of day.sessions; track lesson.sessionId) {
+                <article class="candidate-lesson">
+                  <div class="date-tile"><strong>{{ day.number }}</strong><span>{{ day.month }}</span></div>
+                  <div class="candidate-details">
+                    <strong>{{ lesson.startTime | localTime }} – {{ lesson.endTime | localTime }} · {{ lesson.instructorName }}</strong>
+                    <span>{{ lesson.circuit || 'Séance de conduite' }}{{ lesson.vehicle ? ' · ' + lesson.vehicle : '' }}</span>
+                  </div>
+                  <span class="status-badge" [class]="lesson.status.toLowerCase()">{{ statusLabel(lesson.status) }}</span>
+                </article>
+              }
+            }
+          </div>
+        }
+      </section>
+    }
+
+    @if (!isCandidate) {
+      <section class="availability-panel">
+        <div class="panel-heading">
+          <div><p class="eyebrow">VÉRIFICATION RAPIDE</p><h2>Disponibilités</h2></div>
+          <span class="availability-icon"><mat-icon>manage_search</mat-icon></span>
+        </div>
+        <div class="availability-form">
+          <label>Date<input type="date" [value]="availabilityDate" (change)="setAvailabilityField('availabilityDate', $event)" /></label>
+          <label>Début<input type="time" [value]="availabilityStart" (change)="setAvailabilityField('availabilityStart', $event)" /></label>
+          <label>Fin<input type="time" [value]="availabilityEnd" (change)="setAvailabilityField('availabilityEnd', $event)" /></label>
+          <button mat-flat-button type="button" [disabled]="checkingAvailability()" (click)="checkAvailability()">
+            @if (checkingAvailability()) { <mat-spinner diameter="18"></mat-spinner> } @else { <mat-icon>search</mat-icon> }
+            Vérifier
+          </button>
+        </div>
+        @if (availabilityError()) { <p class="inline-error" role="alert">{{ availabilityError() }}</p> }
+        @if (availability(); as result) {
+          <div class="availability-results">
+            <div><strong>Moniteurs libres <span>{{ result.instructors.length }}</span></strong>
+              @for (instructor of result.instructors; track instructor.id) { <span class="resource-chip">{{ instructor.name }}</span> }
+              @if (!result.instructors.length) { <small>Aucun moniteur libre sur ce créneau.</small> }
+            </div>
+            <div><strong>Véhicules libres <span>{{ result.vehicles.length }}</span></strong>
+              @for (vehicle of result.vehicles; track vehicle.id) { <span class="resource-chip">{{ vehicle.registrationNumber }} · {{ vehicle.brand }} {{ vehicle.model }}</span> }
+              @if (!result.vehicles.length) { <small>Aucun véhicule libre sur ce créneau.</small> }
+            </div>
+          </div>
+          <div class="booking-actions">
+            <button mat-flat-button color="primary" type="button" (click)="startBooking()"
+              [disabled]="isAdmin && !result.instructors.length">
+              <mat-icon>event_available</mat-icon>Créer une séance sur ce créneau
+            </button>
+          </div>
+          @if (bookingOpen()) {
+            <form class="booking-form" (ngSubmit)="saveBooking()">
+              <h3>Nouvelle séance · {{ availabilityDate }} · {{ availabilityStart }}–{{ availabilityEnd }}</h3>
+              <label>Candidat<select name="bookingCandidate" [(ngModel)]="booking.candidateId" required>
+                <option value="">Sélectionner un candidat</option>
+                @for (candidate of candidates(); track candidate.id) {
+                  <option [value]="candidate.id">{{ candidate.firstName }} {{ candidate.lastName }}</option>
+                }
+              </select></label>
+              @if (isAdmin) {
+                <label>Moniteur disponible<select name="bookingInstructor" [(ngModel)]="booking.instructorId" required>
+                  @for (instructor of result.instructors; track instructor.id) {
+                    <option [value]="instructor.id">{{ instructor.name }}</option>
+                  }
+                </select></label>
+              } @else { <label>Moniteur<input value="Votre compte moniteur" disabled /></label> }
+              <label>Véhicule disponible<select name="bookingVehicle" [(ngModel)]="booking.vehicleId">
+                <option value="">Aucun véhicule</option>
+                @for (vehicle of result.vehicles; track vehicle.id) {
+                  <option [value]="vehicle.id">{{ vehicle.registrationNumber }} · {{ vehicle.brand }} {{ vehicle.model }}</option>
+                }
+              </select></label>
+              <label>Circuit<select name="bookingCircuit" [(ngModel)]="booking.circuitId" (ngModelChange)="onBookingCircuitChange()">
+                <option value="">Aucun circuit</option>
+                @for (circuit of circuits(); track circuit.id) { <option [value]="circuit.id">{{ circuit.name }}</option> }
+              </select></label>
+              <label>Prix (DT)<input name="bookingPrice" type="number" min="0" step="0.001" [(ngModel)]="booking.price" /></label>
+              <label>Remarque<input name="bookingNotes" maxlength="10000" [(ngModel)]="booking.notes" /></label>
+              <div class="booking-buttons">
+                <button mat-button type="button" (click)="bookingOpen.set(false)">Annuler</button>
+                <button mat-flat-button color="primary" type="submit" [disabled]="bookingSaving()">
+                  @if (bookingSaving()) { <mat-spinner diameter="18" /> } @else { Confirmer la séance }
+                </button>
+              </div>
+            </form>
+          }
+          @if (bookingError()) { <p class="inline-error" role="alert">{{ bookingError() }}</p> }
+        }
+      </section>
+    }
+    <footer class="page-footer"><span>Un planning clair pour garder le cap.</span><a routerLink="/dashboard">Retour au tableau de bord</a></footer>
+  </main>
+</div>
