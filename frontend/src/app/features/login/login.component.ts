@@ -9,6 +9,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../core/auth/auth.service';
+import { applyValidationErrors } from '../../shared/forms/apply-validation-errors';
 
 @Component({
   selector: 'app-login',
@@ -60,7 +61,13 @@ export class LoginComponent {
             : '/dashboard';
           void this.router.navigateByUrl(destination);
         },
-        error: (error: unknown) => this.errorMessage.set(this.getErrorMessage(error)),
+        error: (error: unknown) => {
+          const hasFieldErrors = error instanceof HttpErrorResponse
+            && applyValidationErrors(this.form, error.error?.validationErrors);
+          this.errorMessage.set(hasFieldErrors
+            ? 'Corrigez les champs indiqués.'
+            : this.getErrorMessage(error));
+        },
       });
   }
 

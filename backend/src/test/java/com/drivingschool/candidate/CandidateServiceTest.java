@@ -3,6 +3,9 @@ package com.drivingschool.candidate;
 import com.drivingschool.candidate.dto.SaveCandidateRequest;
 import com.drivingschool.candidate.dto.CandidateResponse;
 import com.drivingschool.candidate.dto.UpdateCandidateRolesRequest;
+import com.drivingschool.drivingsession.DrivingSessionRepository;
+import com.drivingschool.payment.PaymentRepository;
+import com.drivingschool.payment.PaymentResourceInUseException;
 import com.drivingschool.security.AppUserDetails;
 import com.drivingschool.user.Role;
 import com.drivingschool.user.User;
@@ -31,7 +34,10 @@ class CandidateServiceTest {
 
     private final CandidateRepository candidateRepository = mock(CandidateRepository.class);
     private final UserRepository userRepository = mock(UserRepository.class);
-    private final CandidateService service = new CandidateService(candidateRepository, userRepository);
+    private final DrivingSessionRepository drivingSessionRepository = mock(DrivingSessionRepository.class);
+    private final PaymentRepository paymentRepository = mock(PaymentRepository.class);
+    private final CandidateService service =
+            new CandidateService(candidateRepository, userRepository, drivingSessionRepository, paymentRepository);
 
     @Test
     void createsCandidateWithoutAnAccountAndNormalizesFields() {
@@ -73,10 +79,10 @@ class CandidateServiceTest {
     void filtersCandidatesAndReturnsPagedResults() {
         Candidate candidate = candidate(null, CandidateStatus.ACTIVE);
         var pageable = PageRequest.of(0, 10, Sort.by("lastName"));
-        when(candidateRepository.search("first", CandidateStatus.ACTIVE, pageable))
+        when(candidateRepository.search("first", CandidateStatus.ACTIVE, null, pageable))
                 .thenReturn(new PageImpl<>(List.of(candidate), pageable, 1));
 
-        var result = service.findAll(" first ", CandidateStatus.ACTIVE, pageable);
+        var result = service.findAll(" first ", CandidateStatus.ACTIVE, pageable, null);
 
         assertThat(result.getTotalElements()).isEqualTo(1);
         assertThat(result.getContent()).hasSize(1);
@@ -85,13 +91,13 @@ class CandidateServiceTest {
     @Test
     void normalizesMissingAndBlankSearchToEmptyString() {
         var pageable = PageRequest.of(0, 10);
-        when(candidateRepository.search("", null, pageable))
+        when(candidateRepository.search("", null, null, pageable))
                 .thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
-        service.findAll(null, null, pageable);
-        service.findAll("   ", null, pageable);
+        service.findAll(null, null, pageable, null);
+        service.findAll("   ", null, pageable, null);
 
-        verify(candidateRepository, org.mockito.Mockito.times(2)).search("", null, pageable);
+        verify(candidateRepository, org.mockito.Mockito.times(2)).search("", null, null, pageable);
     }
 
     @Test
@@ -104,6 +110,25 @@ class CandidateServiceTest {
         service.findForUser(principal);
 
         verify(candidateRepository).findByUser_Id(userId);
+    }
+
+    @Test
+    void instructorCannotReadCandidateWithoutPriorSession() {
+        UUID instructorUserId = UUID.randomUUID();
+        UUID candidateId = UUID.randomUUID();
+        var instructor = new AppUserDetails(
+                instructorUserId,
+                "instructor@example.com",
+                "hash",
+                true,
+                List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_INSTRUCTOR"))
+        );
+
+        assertThatThrownBy(() -> service.findById(candidateId, instructor))
+                .isInstanceOf(CandidateNotFoundException.class);
+        verify(drivingSessionRepository)
+                .existsByCandidate_IdAndInstructor_User_Id(candidateId, instructorUserId);
+        verify(candidateRepository, never()).findById(candidateId);
     }
 
     @Test
@@ -126,6 +151,18 @@ class CandidateServiceTest {
 
         verify(candidateRepository).delete(candidate);
         verify(userRepository, never()).delete(any(User.class));
+    }
+
+    @Test
+    void refusesToDeleteCandidateReferencedByPayment() {
+        Candidate candidate = candidate(null, CandidateStatus.ACTIVE);
+        when(candidateRepository.findById(candidate.getId())).thenReturn(Optional.of(candidate));
+        when(paymentRepository.existsByCandidate_Id(candidate.getId())).thenReturn(true);
+
+        assertThatThrownBy(() -> service.delete(candidate.getId()))
+                .isInstanceOf(PaymentResourceInUseException.class);
+
+        verify(candidateRepository, never()).delete(candidate);
     }
 
     private Candidate candidate(User user, CandidateStatus status) {

@@ -1,6 +1,8 @@
 package com.drivingschool.instructor;
 
 import com.drivingschool.common.api.ApiSecurityExceptionHandler;
+import com.drivingschool.drivingsession.DrivingSessionResourceInUseException;
+import com.drivingschool.exception.GlobalExceptionHandler;
 import com.drivingschool.instructor.dto.CreateInstructorRequest;
 import com.drivingschool.instructor.dto.InstructorResponse;
 import com.drivingschool.security.AppUserDetails;
@@ -40,6 +42,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import({
         com.drivingschool.security.SecurityConfig.class,
         ApiSecurityExceptionHandler.class,
+        GlobalExceptionHandler.class,
         InstructorSecurityMockMvcTest.MethodSecurityConfiguration.class
 })
 class InstructorSecurityMockMvcTest {
@@ -208,6 +211,20 @@ class InstructorSecurityMockMvcTest {
                 .andExpect(jsonPath("$.initialPassword").doesNotExist());
 
         verify(instructorService).create(org.mockito.ArgumentMatchers.any(CreateInstructorRequest.class));
+    }
+
+    @Test
+    void deletingInstructorWithSessionsReturnsConflict() throws Exception {
+        UUID instructorId = UUID.randomUUID();
+        org.mockito.Mockito.doThrow(new DrivingSessionResourceInUseException("instructor"))
+                .when(instructorService).delete(instructorId);
+
+        mockMvc.perform(delete("/api/instructors/{id}", instructorId)
+                        .with(user("admin").roles("ADMIN")))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value(
+                        "Cannot delete instructor with driving sessions; deactivate it instead"
+                ));
     }
 
     private InstructorResponse response(UUID id, UUID userId) {

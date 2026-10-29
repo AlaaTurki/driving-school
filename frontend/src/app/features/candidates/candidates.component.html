@@ -1,15 +1,4 @@
 <main class="candidates-page">
-  <header class="page-header">
-    <a class="brand" routerLink="/dashboard">
-      <span class="brand-icon"><mat-icon>directions_car</mat-icon></span>
-      <span><strong>Conduite</strong><small>ESPACE DE GESTION</small></span>
-    </a>
-    <div class="header-actions">
-      <a mat-button routerLink="/dashboard"><mat-icon>space_dashboard</mat-icon>Vue d’ensemble</a>
-      <button mat-button type="button" (click)="logout()"><mat-icon>logout</mat-icon>Déconnexion</button>
-    </div>
-  </header>
-
   <section class="page-content">
     <p class="eyebrow">APPRENTISSAGE · GESTION DES PROFILS</p>
     <div class="title-row">
@@ -19,7 +8,14 @@
           {{ isAdmin ? 'Consultez et modifiez les profils des candidats.' : 'Consultez les candidats et recherchez leurs coordonnées ou leur statut.' }}
         </p>
       </div>
-      <span class="total-count">{{ totalElements() }} candidat{{ totalElements() > 1 ? 's' : '' }}</span>
+      <div class="title-actions">
+        <span class="total-count">{{ totalElements() }} candidat{{ totalElements() > 1 ? 's' : '' }}</span>
+        @if (isAdmin) {
+          <button mat-flat-button color="primary" type="button" (click)="startCreate()">
+            <mat-icon>person_add</mat-icon>Nouveau candidat
+          </button>
+        }
+      </div>
     </div>
 
     @if (errorMessage()) {
@@ -31,16 +27,8 @@
 
     <section class="candidate-panel" aria-label="Liste des candidats">
       <div class="filters">
-        <label class="search-field">
-          <mat-icon>search</mat-icon>
-          <span class="visually-hidden">Rechercher par nom, e-mail ou téléphone</span>
-          <input
-            type="search"
-            placeholder="Rechercher un candidat..."
-            [value]="searchTerm()"
-            (input)="onSearch($event)"
-          />
-        </label>
+        <app-search-bar placeholder="Rechercher un candidat..."
+                        (searchChange)="onSearchChange($event)" />
         <label class="status-filter">
           <span>Statut</span>
           <select [value]="statusFilter()" (change)="onStatusChange($event)">
@@ -59,10 +47,15 @@
         <div class="table-wrap">
           <table>
             <thead>
-              <tr><th>Nom</th><th>Rôle</th><th>Coordonnées</th><th>Date de naissance</th><th>Inscrit le</th><th>Statut</th><th><span class="visually-hidden">Action</span></th></tr>
+              <tr>
+                <th><button class="sort-button" type="button" (click)="sortBy('lastName')">Nom ⇅</button></th>
+                <th>Rôle</th><th>Coordonnées</th><th><button class="sort-button" type="button" (click)="sortBy('dateOfBirth')">Date de naissance ⇅</button></th>
+                <th><button class="sort-button" type="button" (click)="sortBy('registrationDate')">Inscrit le ⇅</button></th>
+                <th><button class="sort-button" type="button" (click)="sortBy('status')">Statut ⇅</button></th><th><span class="visually-hidden">Action</span></th>
+              </tr>
             </thead>
             <tbody>
-              @for (candidate of filteredCandidates(); track candidate.id) {
+              @for (candidate of sortedCandidates(); track candidate.id) {
                 <tr>
                   <td><strong>{{ candidate.firstName }} {{ candidate.lastName }}</strong></td>
                   <td>{{ roleLabel(candidate) }}</td>
@@ -70,8 +63,8 @@
                     <a [href]="'mailto:' + candidate.email">{{ candidate.email }}</a>
                     <a [href]="'tel:' + candidate.phone">{{ candidate.phone }}</a>
                   </td>
-                  <td>{{ candidate.dateOfBirth ? (candidate.dateOfBirth | date:'mediumDate') : '—' }}</td>
-                  <td>{{ candidate.registrationDate | date:'mediumDate' }}</td>
+                  <td>{{ candidate.dateOfBirth | localDate }}</td>
+                  <td>{{ candidate.registrationDate | localDate }}</td>
                   <td><span class="status-badge" [class.inactive]="candidate.status === 'INACTIVE'">
                     {{ statusLabel(candidate.status) }}
                   </span></td>
@@ -83,6 +76,18 @@
                     }
                     @if (isAdmin && candidate.userId) {
                       <button mat-button type="button" (click)="editRoles(candidate)"><mat-icon>manage_accounts</mat-icon>Rôles</button>
+                    }
+                    <button mat-button type="button" (click)="openDetails(candidate)">
+                      <mat-icon>open_in_new</mat-icon>Détails
+                    </button>
+                    <button mat-button type="button" (click)="openProgress(candidate)">
+                      <mat-icon>trending_up</mat-icon>Progression
+                    </button>
+                    @if (isAdmin) {
+                      <button mat-button class="delete-button" type="button" (click)="deleteCandidate(candidate)"
+                              [disabled]="!!deletingId()">
+                        <mat-icon>delete</mat-icon>Supprimer
+                      </button>
                     }
                   </td>
                 </tr>
@@ -104,38 +109,43 @@
       }
     </section>
 
-    @if (editingCandidate(); as candidate) {
+    @if (candidateFormOpen()) {
       <section class="edit-panel" aria-labelledby="candidate-edit-title">
         <div class="edit-heading">
-          <div><p class="eyebrow">PROFIL CANDIDAT</p><h2 id="candidate-edit-title">Modifier — {{ candidate.firstName }} {{ candidate.lastName }}</h2></div>
+          <div><p class="eyebrow">PROFIL CANDIDAT</p><h2 id="candidate-edit-title">{{ editingCandidate() ? 'Modifier — ' + editingCandidate()?.firstName + ' ' + editingCandidate()?.lastName : 'Créer un candidat' }}</h2></div>
           <button mat-icon-button type="button" aria-label="Fermer le formulaire" (click)="cancelCandidateEdit()">
             <mat-icon>close</mat-icon>
           </button>
         </div>
-        <form (ngSubmit)="saveCandidate()">
+        <form [formGroup]="form" (ngSubmit)="saveCandidate()" novalidate>
           <label>Prénom
-            <input name="firstName" [(ngModel)]="candidateDraft.firstName" required maxlength="120" [disabled]="saving()" />
+            <input formControlName="firstName" autocomplete="given-name" [disabled]="saving()" />
+            @if (form.controls['firstName'].touched && form.controls['firstName'].invalid) { <small class="field-error">Saisissez un prénom de 120 caractères maximum.</small> }
           </label>
           <label>Nom
-            <input name="lastName" [(ngModel)]="candidateDraft.lastName" required maxlength="120" [disabled]="saving()" />
+            <input formControlName="lastName" autocomplete="family-name" [disabled]="saving()" />
+            @if (form.controls['lastName'].touched && form.controls['lastName'].invalid) { <small class="field-error">Saisissez un nom de 120 caractères maximum.</small> }
           </label>
           <label>Téléphone
-            <input name="phone" [(ngModel)]="candidateDraft.phone" required maxlength="30" [disabled]="saving()" />
+            <input formControlName="phone" type="tel" autocomplete="tel" [disabled]="saving()" />
+            @if (form.controls['phone'].touched && form.controls['phone'].invalid) { <small class="field-error">Le téléphone est obligatoire (30 caractères maximum).</small> }
           </label>
           <label>E-mail
-            <input name="email" type="email" [(ngModel)]="candidateDraft.email" required maxlength="320" [disabled]="saving()" />
+            <input formControlName="email" type="email" autocomplete="email" [disabled]="saving()" />
+            @if (form.controls['email'].touched && form.controls['email'].invalid) { <small class="field-error">Saisissez une adresse e-mail valide (320 caractères maximum).</small> }
           </label>
           <label>Date de naissance
-            <input name="dateOfBirth" type="date" [(ngModel)]="candidateDraft.dateOfBirth" [disabled]="saving()" />
+            <input formControlName="dateOfBirth" type="date" [disabled]="saving()" />
           </label>
           <label>Adresse
-            <input name="address" [(ngModel)]="candidateDraft.address" maxlength="500" [disabled]="saving()" />
+            <input formControlName="address" [disabled]="saving()" />
           </label>
           <label>Date d’inscription
-            <input name="registrationDate" type="date" [(ngModel)]="candidateDraft.registrationDate" required [disabled]="saving()" />
+            <input formControlName="registrationDate" type="date" [disabled]="saving()" />
+            @if (form.controls['registrationDate'].touched && form.controls['registrationDate'].invalid) { <small class="field-error">La date d’inscription est obligatoire.</small> }
           </label>
           <label>Statut
-            <select name="status" [(ngModel)]="candidateDraft.status" required [disabled]="saving()">
+            <select formControlName="status" [disabled]="saving()">
               <option value="ACTIVE">Actif</option>
               <option value="INACTIVE">Inactif</option>
               <option value="COMPLETED">Terminé</option>
@@ -143,7 +153,7 @@
             </select>
           </label>
           <label class="notes-field">Notes
-            <textarea name="notes" [(ngModel)]="candidateDraft.notes" maxlength="10000" rows="3" [disabled]="saving()"></textarea>
+            <textarea formControlName="notes" rows="3" [disabled]="saving()"></textarea>
           </label>
           <div class="edit-actions">
             <button mat-button type="button" (click)="cancelCandidateEdit()">Annuler</button>

@@ -2,6 +2,7 @@ package com.drivingschool.vehicle;
 
 import com.drivingschool.vehicle.dto.SaveVehicleRequest;
 import com.drivingschool.vehicle.dto.VehicleResponse;
+import com.drivingschool.drivingsession.DrivingSessionRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -19,7 +20,8 @@ import static org.mockito.Mockito.when;
 class VehicleServiceTest {
 
     private final VehicleRepository vehicleRepository = mock(VehicleRepository.class);
-    private final VehicleService service = new VehicleService(vehicleRepository);
+    private final DrivingSessionRepository drivingSessionRepository = mock(DrivingSessionRepository.class);
+    private final VehicleService service = new VehicleService(vehicleRepository, drivingSessionRepository);
 
     @Test
     void createsVehicleWithNormalizedRegistrationNumber() {

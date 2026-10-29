@@ -1,6 +1,7 @@
 package com.drivingschool.circuit;
 
 import com.drivingschool.circuit.dto.SaveCircuitRequest;
+import com.drivingschool.drivingsession.DrivingSessionRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -19,7 +20,8 @@ import static org.mockito.Mockito.when;
 class CircuitServiceTest {
 
     private final CircuitRepository circuitRepository = mock(CircuitRepository.class);
-    private final CircuitService service = new CircuitService(circuitRepository);
+    private final DrivingSessionRepository drivingSessionRepository = mock(DrivingSessionRepository.class);
+    private final CircuitService service = new CircuitService(circuitRepository, drivingSessionRepository);
 
     @Test
     void trimsCircuitFieldsAndAcceptsZeroPrice() {

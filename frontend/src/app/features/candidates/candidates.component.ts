@@ -1,9 +1,8 @@
-import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
-import { finalize } from 'rxjs';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
+import { EMPTY, finalize, switchMap, take } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -12,23 +11,15 @@ import { AuthSession } from '../../core/auth/auth.models';
 import {
   Candidate,
   CandidateStatus,
+  SaveCandidateRequest,
   UpdateCandidateRequest,
   UserRole,
 } from '../../core/candidates/candidate.models';
 import { CandidateService } from '../../core/candidates/candidate.service';
-
-interface CandidateDraft {
-  firstName: string;
-  lastName: string;
-  phone: string;
-  email: string;
-  dateOfBirth: string;
-  address: string;
-  registrationDate: string;
-  status: CandidateStatus;
-  notes: string;
-  userId: string | null;
-}
+import { SearchBarComponent } from '../../shared/components/search-bar.component';
+import { LocalDatePipe } from '../../shared/pipes/local-date.pipe';
+import { ConfirmationDialogService } from '../../shared/components/confirm-dialog.component';
+import { applyValidationErrors } from '../../shared/forms/apply-validation-errors';
 
 function isUserRole(role: string): role is UserRole {
   return role === 'ADMIN' || role === 'INSTRUCTOR' || role === 'CANDIDATE';
@@ -37,7 +28,7 @@ function isUserRole(role: string): role is UserRole {
 @Component({
   selector: 'app-candidates',
   standalone: true,
-  imports: [DatePipe, FormsModule, RouterLink, MatButtonModule, MatIconModule, MatProgressSpinnerModule],
+  imports: [ReactiveFormsModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule, SearchBarComponent, LocalDatePipe],
   templateUrl: './candidates.component.html',
   styleUrl: './candidates.component.scss',
 })
@@ -51,18 +42,9 @@ export class CandidatesComponent {
   readonly statusFilter = signal<CandidateStatus | 'ALL'>('ALL');
   readonly selectedCandidate = signal<Candidate | null>(null);
   readonly editingCandidate = signal<Candidate | null>(null);
-  readonly candidateDraft: CandidateDraft = {
-    firstName: '',
-    lastName: '',
-    phone: '',
-    email: '',
-    dateOfBirth: '',
-    address: '',
-    registrationDate: '',
-    status: 'ACTIVE',
-    notes: '',
-    userId: null,
-  };
+  readonly candidateFormOpen = signal(false);
+  readonly deletingId = signal<string | null>(null);
+  readonly form: FormGroup;
   readonly pageNumber = signal(0);
   readonly totalPages = signal(0);
   readonly totalElements = signal(0);
@@ -72,12 +54,33 @@ export class CandidatesComponent {
   readonly availableRoles: UserRole[] = ['ADMIN', 'INSTRUCTOR', 'CANDIDATE'];
   readonly selectedRoles = signal<UserRole[]>([]);
   readonly filteredCandidates = computed(() => this.candidates());
+  readonly sortKey = signal<keyof Candidate>('lastName');
+  readonly sortAscending = signal(true);
+  readonly sortedCandidates = computed(() => {
+    const key = this.sortKey();
+    const direction = this.sortAscending() ? 1 : -1;
+    return [...this.filteredCandidates()].sort((left, right) =>
+      String(left[key] ?? '').localeCompare(String(right[key] ?? ''), undefined, { numeric: true }) * direction);
+  });
 
   constructor(
+    formBuilder: FormBuilder,
     private readonly candidateService: CandidateService,
     private readonly authService: AuthService,
     private readonly router: Router,
+    private readonly confirmations: ConfirmationDialogService,
   ) {
+    this.form = formBuilder.nonNullable.group({
+      firstName: ['', [Validators.required, Validators.maxLength(120)]],
+      lastName: ['', [Validators.required, Validators.maxLength(120)]],
+      phone: ['', [Validators.required, Validators.maxLength(30)]],
+      email: ['', [Validators.required, Validators.email, Validators.maxLength(320)]],
+      dateOfBirth: [''],
+      address: ['', Validators.maxLength(500)],
+      registrationDate: [new Date().toISOString().slice(0, 10), Validators.required],
+      status: ['ACTIVE' as CandidateStatus, Validators.required],
+      notes: ['', Validators.maxLength(10000)],
+    });
     this.session = this.authService.getSession();
     this.isAdmin = this.session?.roles.includes('ADMIN') ?? false;
     this.loadCandidates();
@@ -118,10 +121,16 @@ export class CandidatesComponent {
       });
   }
 
-  onSearch(event: Event): void {
-    if (event.target instanceof HTMLInputElement) {
-      this.searchTerm.set(event.target.value);
-      this.loadCandidates(0);
+  onSearchChange(value: string): void {
+    this.searchTerm.set(value);
+    this.loadCandidates(0);
+  }
+
+  sortBy(key: keyof Candidate): void {
+    if (this.sortKey() === key) this.sortAscending.update((ascending) => !ascending);
+    else {
+      this.sortKey.set(key);
+      this.sortAscending.set(true);
     }
   }
 
@@ -158,9 +167,10 @@ export class CandidatesComponent {
 
   editCandidate(candidate: Candidate): void {
     this.editingCandidate.set(candidate);
+    this.candidateFormOpen.set(true);
     this.errorMessage.set('');
     this.successMessage.set('');
-    Object.assign(this.candidateDraft, {
+    this.form.reset({
       firstName: candidate.firstName,
       lastName: candidate.lastName,
       phone: candidate.phone,
@@ -170,39 +180,105 @@ export class CandidatesComponent {
       registrationDate: candidate.registrationDate,
       status: candidate.status,
       notes: candidate.notes ?? '',
-      userId: candidate.userId,
     });
   }
 
-  cancelCandidateEdit(): void {
+  startCreate(): void {
     this.editingCandidate.set(null);
+    this.candidateFormOpen.set(true);
+    this.form.reset({
+      firstName: '',
+      lastName: '',
+      phone: '',
+      email: '',
+      dateOfBirth: '',
+      address: '',
+      registrationDate: new Date().toISOString().slice(0, 10),
+      status: 'ACTIVE',
+      notes: '',
+    });
+    this.errorMessage.set('');
+    this.successMessage.set('');
+  }
+
+  openDetails(candidate: Candidate): void {
+    void this.router.navigate(['/candidates', candidate.id]);
+  }
+
+  openProgress(candidate: Candidate): void {
+    void this.router.navigate(['/candidates', candidate.id, 'skills']);
+  }
+
+  cancelCandidateEdit(): void {
+    this.candidateFormOpen.set(false);
+    this.editingCandidate.set(null);
+    this.form.reset();
   }
 
   saveCandidate(): void {
-    const candidate = this.editingCandidate();
-    if (!this.isAdmin || !candidate || this.saving()) {
+    if (!this.isAdmin || this.saving()) {
+      return;
+    }
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
       return;
     }
 
-    const changes: UpdateCandidateRequest = {
-      ...this.candidateDraft,
-      dateOfBirth: this.candidateDraft.dateOfBirth || null,
-      address: this.candidateDraft.address || null,
-      notes: this.candidateDraft.notes || null,
+    const candidate = this.editingCandidate();
+    const values = this.form.getRawValue();
+    const changes: SaveCandidateRequest = {
+      ...values,
+      dateOfBirth: values.dateOfBirth || null,
+      address: values.address.trim() || null,
+      notes: values.notes.trim() || null,
+      userId: candidate?.userId ?? null,
     };
     this.errorMessage.set('');
     this.successMessage.set('');
     this.saving.set(true);
-    this.candidateService.update(candidate.id, changes)
+    const request = candidate
+      ? this.candidateService.update(candidate.id, changes satisfies UpdateCandidateRequest)
+      : this.candidateService.create(changes);
+    request
       .pipe(finalize(() => this.saving.set(false)))
       .subscribe({
         next: (updated) => {
-          this.candidates.update((items) => items.map((item) => item.id === updated.id ? updated : item));
-          this.editingCandidate.set(updated);
-          this.successMessage.set(`Candidat ${updated.firstName} ${updated.lastName} mis à jour.`);
+          this.cancelCandidateEdit();
+          this.successMessage.set(candidate
+            ? `Candidat ${updated.firstName} ${updated.lastName} mis à jour.`
+            : `Candidat ${updated.firstName} ${updated.lastName} créé.`);
+          this.loadCandidates(0);
         },
-        error: (error: unknown) => this.errorMessage.set(this.getErrorMessage(error)),
+        error: (error: unknown) => {
+          if (error instanceof HttpErrorResponse && applyValidationErrors(this.form, error.error?.validationErrors)) {
+            this.errorMessage.set('Corrigez les champs indiqués.');
+          } else {
+            this.errorMessage.set(this.getErrorMessage(error));
+          }
+        },
       });
+  }
+
+  deleteCandidate(candidate: Candidate): void {
+    if (this.deletingId()) return;
+    this.confirmations.confirm({
+      title: 'Supprimer le candidat ?',
+      message: `Le profil de ${candidate.firstName} ${candidate.lastName} sera supprimé. Cette action est irréversible.`,
+    }).pipe(
+      take(1),
+      switchMap((confirmed) => {
+        if (!confirmed) return EMPTY;
+        this.deletingId.set(candidate.id);
+        this.errorMessage.set('');
+        return this.candidateService.delete(candidate.id).pipe(finalize(() => this.deletingId.set(null)));
+      }),
+    ).subscribe({
+      next: () => {
+        this.successMessage.set(`Candidat ${candidate.firstName} ${candidate.lastName} supprimé.`);
+        this.loadCandidates(0);
+      },
+      error: (error: unknown) => this.errorMessage.set(this.getErrorMessage(error)),
+    });
   }
 
   cancelEdit(): void {
@@ -280,6 +356,10 @@ export class CandidatesComponent {
     }
 
     if (error instanceof HttpErrorResponse && error.status === 409) {
+      const message = String(error.error?.message ?? '').toLowerCase();
+      if (message.includes('session') || message.includes('payment')) {
+        return 'Ce candidat ne peut pas être supprimé car des séances ou des paiements lui sont associés.';
+      }
       return 'Cette adresse e-mail est déjà utilisée.';
     }
 

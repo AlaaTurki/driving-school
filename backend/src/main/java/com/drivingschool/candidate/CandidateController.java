@@ -10,6 +10,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,6 +20,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import com.drivingschool.security.AppUserDetails;
+import com.drivingschool.user.Role;
 
 import java.util.UUID;
 
@@ -38,7 +41,8 @@ public class CandidateController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) CandidateStatus status,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal AppUserDetails user
     ) {
         if (page < 0 || size < 1 || size > 100) {
             throw new org.springframework.web.server.ResponseStatusException(
@@ -49,13 +53,15 @@ public class CandidateController {
         return CandidatePageResponse.from(candidateService.findAll(
                 search,
                 status,
-                PageRequest.of(page, size, Sort.by("lastName").ascending().and(Sort.by("firstName").ascending()))
+                PageRequest.of(page, size, Sort.by("lastName").ascending().and(Sort.by("firstName").ascending())),
+                user.getAuthorities().stream().anyMatch(authority ->
+                        authority.getAuthority().equals("ROLE_" + Role.INSTRUCTOR.name())) ? user.id() : null
         ));
     }
 
     @GetMapping("/{id}")
-    public CandidateResponse findById(@PathVariable UUID id) {
-        return candidateService.findById(id);
+    public CandidateResponse findById(@PathVariable UUID id, @AuthenticationPrincipal AppUserDetails user) {
+        return candidateService.findById(id, user);
     }
 
     @PostMapping

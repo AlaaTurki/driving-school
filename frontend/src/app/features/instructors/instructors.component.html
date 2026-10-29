@@ -1,15 +1,4 @@
 <main class="instructors-page">
-  <header class="page-header">
-    <a class="brand" routerLink="/dashboard">
-      <span class="brand-icon"><mat-icon>directions_car</mat-icon></span>
-      <span><strong>Conduite</strong><small>ESPACE DE GESTION</small></span>
-    </a>
-    <div class="header-actions">
-      <a mat-button routerLink="/dashboard"><mat-icon>space_dashboard</mat-icon>Vue d’ensemble</a>
-      <button mat-button type="button" (click)="logout()"><mat-icon>logout</mat-icon>Déconnexion</button>
-    </div>
-  </header>
-
   <section class="page-content">
     <p class="eyebrow">ÉQUIPE · GESTION DES PROFILS</p>
     <div class="title-row">
@@ -31,16 +20,7 @@
 
     <section class="instructor-panel" aria-label="Liste des moniteurs">
       <div class="filters">
-        <label class="search-field">
-          <mat-icon>search</mat-icon>
-          <span class="visually-hidden">Rechercher par nom, e-mail, téléphone ou permis</span>
-          <input
-            type="search"
-            placeholder="Rechercher un moniteur..."
-            [value]="searchTerm()"
-            (input)="onSearch($event)"
-          />
-        </label>
+        <app-search-bar placeholder="Rechercher un moniteur..." (searchChange)="onSearchChange($event)" />
         <label class="status-filter">
           <span>Statut</span>
           <select [value]="statusFilter()" (change)="onStatusChange($event)">
@@ -76,10 +56,14 @@
                       {{ statusLabel(instructor.status) }}
                     </span>
                   </td>
-                  <td>{{ instructor.createdAt | date:'mediumDate' }}</td>
+                  <td>{{ instructor.createdAt | localDate }}</td>
                   <td class="row-actions">
                     <button mat-button type="button" (click)="startEdit(instructor)" [disabled]="!!deletingId()">
                       <mat-icon>edit</mat-icon>Modifier
+                    </button>
+                    <button mat-button type="button" (click)="toggleStatus(instructor)" [disabled]="!!deletingId()">
+                      <mat-icon>{{ instructor.status === 'ACTIVE' ? 'pause_circle' : 'play_circle' }}</mat-icon>
+                      {{ instructor.status === 'ACTIVE' ? 'Désactiver' : 'Activer' }}
                     </button>
                     <button mat-button type="button" class="delete-button"
                       (click)="deleteInstructor(instructor)" [disabled]="!!deletingId()">
@@ -124,36 +108,36 @@
           </button>
         </div>
 
-        <form (submit)="save($event)">
+        <form [formGroup]="form" (ngSubmit)="save()" novalidate>
           <label>
             Prénom
-            <input required maxlength="120" autocomplete="given-name"
-              [value]="form().firstName" (input)="setTextField('firstName', $event)" />
+            <input formControlName="firstName" maxlength="120" autocomplete="given-name" />
+            @if (form.controls['firstName'].touched && form.controls['firstName'].invalid) { <small class="field-error">Le prénom est obligatoire (120 caractères maximum).</small> }
           </label>
           <label>
             Nom
-            <input required maxlength="120" autocomplete="family-name"
-              [value]="form().lastName" (input)="setTextField('lastName', $event)" />
+            <input formControlName="lastName" maxlength="120" autocomplete="family-name" />
+            @if (form.controls['lastName'].touched && form.controls['lastName'].invalid) { <small class="field-error">Le nom est obligatoire (120 caractères maximum).</small> }
           </label>
           <label>
             Téléphone
-            <input required maxlength="30" type="tel" autocomplete="tel"
-              [value]="form().phone" (input)="setTextField('phone', $event)" />
+            <input formControlName="phone" maxlength="30" type="tel" autocomplete="tel" />
+            @if (form.controls['phone'].touched && form.controls['phone'].invalid) { <small class="field-error">Le téléphone est obligatoire (30 caractères maximum).</small> }
           </label>
           <label>
             E-mail
-            <input required maxlength="320" type="email" autocomplete="email"
-              [value]="form().email" (input)="setTextField('email', $event)" />
+            <input formControlName="email" maxlength="320" type="email" autocomplete="email" />
+            @if (form.controls['email'].touched && form.controls['email'].invalid) { <small class="field-error">Saisissez une adresse e-mail valide.</small> }
           </label>
           <label>
             Numéro de permis
-            <input required maxlength="100"
-              [value]="form().licenseNumber" (input)="setTextField('licenseNumber', $event)" />
+            <input formControlName="licenseNumber" maxlength="100" />
+            @if (form.controls['licenseNumber'].touched && form.controls['licenseNumber'].invalid) { <small class="field-error">Le numéro de permis est obligatoire.</small> }
           </label>
           @if (selectedInstructor()) {
             <label>
               Statut
-              <select [value]="form().status" (change)="setStatus($event)">
+              <select formControlName="status">
                 <option value="ACTIVE">Actif</option>
                 <option value="INACTIVE">Inactif</option>
               </select>
@@ -161,9 +145,9 @@
           } @else {
             <label>
               Mot de passe initial
-              <input required minlength="12" maxlength="72" type="password" autocomplete="new-password"
-                [value]="form().initialPassword" (input)="setTextField('initialPassword', $event)" />
+              <input required minlength="12" maxlength="72" type="password" autocomplete="new-password" formControlName="initialPassword" />
               <small>12 caractères minimum. Le compte sera créé avec le rôle Moniteur.</small>
+              @if (form.controls['initialPassword'].touched && form.controls['initialPassword'].invalid) { <small class="field-error">Le mot de passe doit contenir de 12 à 72 caractères.</small> }
             </label>
           }
           <div class="edit-actions">

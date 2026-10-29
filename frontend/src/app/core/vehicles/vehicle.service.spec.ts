@@ -61,4 +61,24 @@ describe('VehicleService', () => {
       updatedAt: '2026-10-04T00:00:00Z',
     });
   });
+
+  it('updates and deletes a vehicle', () => {
+      const body: SaveVehicleRequest = {
+        registrationNumber: 'ABC-123',
+        brand: 'Toyota',
+        model: 'Yaris',
+        type: 'MANUAL',
+        active: false,
+      };
+      service.update('vehicle-id', body).subscribe((result) => expect(result.active).toBeFalse());
+      const update = httpTesting.expectOne('/api/vehicles/vehicle-id');
+      expect(update.request.method).toBe('PUT');
+      expect(update.request.body).toEqual(body);
+      update.flush({ id: 'vehicle-id', ...body, createdAt: '', updatedAt: '' });
+
+      service.delete('vehicle-id').subscribe();
+      const remove = httpTesting.expectOne('/api/vehicles/vehicle-id');
+      expect(remove.request.method).toBe('DELETE');
+      remove.flush(null);
+  });
 });

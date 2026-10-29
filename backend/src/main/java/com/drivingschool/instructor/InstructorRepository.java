@@ -2,12 +2,14 @@ package com.drivingschool.instructor;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 
 public interface InstructorRepository extends JpaRepository<Instructor, UUID> {
@@ -41,4 +43,6 @@ public interface InstructorRepository extends JpaRepository<Instructor, UUID> {
     boolean existsByLicenseNumberIgnoreCase(String licenseNumber);
 
     boolean existsByLicenseNumberIgnoreCaseAndIdNot(String licenseNumber, UUID id);
+
+    List<Instructor> findAllByStatus(InstructorStatus status, Sort sort);
 }

@@ -2,11 +2,13 @@ package com.drivingschool.vehicle;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 
 public interface VehicleRepository extends JpaRepository<Vehicle, UUID> {
@@ -30,4 +32,6 @@ public interface VehicleRepository extends JpaRepository<Vehicle, UUID> {
     boolean existsByRegistrationNumberIgnoreCase(String registrationNumber);
 
     boolean existsByRegistrationNumberIgnoreCaseAndIdNot(String registrationNumber, UUID id);
+
+    List<Vehicle> findAllByActiveTrue(Sort sort);
 }

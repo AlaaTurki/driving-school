@@ -1,8 +1,29 @@
-backend/target/
+# Environment files
 .env
-.idea/
-*.iml
-**/.angular/
+.env.*
+!.env.example
+backend/.env
+frontend/.env
+web/.env
+
+# Java / Maven
+backend/target/
+**/target/
+
+# Node / Angular
 **/node_modules/
 **/dist/
+**/.angular/
+**/coverage/
+
+# IDE / editors
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
 *.log

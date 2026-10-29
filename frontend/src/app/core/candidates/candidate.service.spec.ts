@@ -4,6 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import {
   Candidate,
   CandidatePage,
+  SaveCandidateRequest,
   UpdateCandidateRequest,
   UpdateCandidateRolesRequest,
 } from './candidate.models';
@@ -115,5 +116,36 @@ describe('CandidateService', () => {
       updatedAt: '2026-10-03T11:00:00Z',
       roles: ['CANDIDATE'],
     });
+  });
+
+  it('creates and deletes candidates', () => {
+      const requestBody: SaveCandidateRequest = {
+        firstName: 'Candidate',
+        lastName: 'New',
+        phone: '+216 11 222 333',
+        email: 'new@example.com',
+        dateOfBirth: null,
+        address: null,
+        registrationDate: '2026-10-29',
+        status: 'ACTIVE',
+        notes: null,
+        userId: null,
+      };
+      service.create(requestBody).subscribe((result) => expect(result.email).toBe(requestBody.email));
+      const create = httpTesting.expectOne('/api/candidates');
+      expect(create.request.method).toBe('POST');
+      expect(create.request.body).toEqual(requestBody);
+      create.flush({
+        id: 'candidate-new',
+        ...requestBody,
+        createdAt: '2026-10-29T11:00:00Z',
+        updatedAt: '2026-10-29T11:00:00Z',
+        roles: [],
+      });
+
+      service.delete('candidate-new').subscribe();
+      const remove = httpTesting.expectOne('/api/candidates/candidate-new');
+      expect(remove.request.method).toBe('DELETE');
+      remove.flush(null);
   });
 });

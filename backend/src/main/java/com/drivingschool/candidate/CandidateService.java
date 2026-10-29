@@ -4,6 +4,10 @@ import com.drivingschool.auth.EmailAlreadyRegisteredException;
 import com.drivingschool.candidate.dto.CandidateResponse;
 import com.drivingschool.candidate.dto.SaveCandidateRequest;
 import com.drivingschool.candidate.dto.UpdateCandidateRolesRequest;
+import com.drivingschool.drivingsession.DrivingSessionRepository;
+import com.drivingschool.drivingsession.DrivingSessionResourceInUseException;
+import com.drivingschool.payment.PaymentRepository;
+import com.drivingschool.payment.PaymentResourceInUseException;
 import com.drivingschool.security.AppUserDetails;
 import com.drivingschool.user.Role;
 import com.drivingschool.user.User;
@@ -23,21 +27,40 @@ public class CandidateService {
 
     private final CandidateRepository candidateRepository;
     private final UserRepository userRepository;
+    private final DrivingSessionRepository drivingSessionRepository;
+    private final PaymentRepository paymentRepository;
 
-    public CandidateService(CandidateRepository candidateRepository, UserRepository userRepository) {
+    public CandidateService(
+            CandidateRepository candidateRepository,
+            UserRepository userRepository,
+            DrivingSessionRepository drivingSessionRepository,
+            PaymentRepository paymentRepository
+    ) {
         this.candidateRepository = candidateRepository;
         this.userRepository = userRepository;
+        this.drivingSessionRepository = drivingSessionRepository;
+        this.paymentRepository = paymentRepository;
     }
 
     @Transactional(readOnly = true)
-    public Page<CandidateResponse> findAll(String search, CandidateStatus status, Pageable pageable) {
+    public Page<CandidateResponse> findAll(
+            String search,
+            CandidateStatus status,
+            Pageable pageable,
+            UUID instructorUserId
+    ) {
         String normalizedSearch = search == null ? "" : search.trim();
-        // TODO(Phase 5): restrict instructors to assigned candidates once lesson/session ownership exists.
-        return candidateRepository.search(normalizedSearch, status, pageable).map(CandidateService::toResponse);
+        return candidateRepository.search(normalizedSearch, status, instructorUserId, pageable)
+                .map(CandidateService::toResponse);
     }
 
     @Transactional(readOnly = true)
-    public CandidateResponse findById(UUID id) {
+    public CandidateResponse findById(UUID id, AppUserDetails actor) {
+        boolean admin = actor.getAuthorities().stream().anyMatch(authority ->
+                authority.getAuthority().equals("ROLE_" + Role.ADMIN.name()));
+        if (!admin && !drivingSessionRepository.existsByCandidate_IdAndInstructor_User_Id(id, actor.id())) {
+            throw new CandidateNotFoundException(id);
+        }
         return candidateRepository.findById(id)
                 .map(CandidateService::toResponse)
                 .orElseThrow(() -> new CandidateNotFoundException(id));
@@ -99,6 +122,12 @@ public class CandidateService {
     public void delete(UUID id) {
         Candidate candidate = candidateRepository.findById(id)
                 .orElseThrow(() -> new CandidateNotFoundException(id));
+        if (drivingSessionRepository.existsByCandidate_Id(id)) {
+            throw new DrivingSessionResourceInUseException("candidate");
+        }
+        if (paymentRepository.existsByCandidate_Id(id)) {
+            throw new PaymentResourceInUseException("candidate");
+        }
         candidateRepository.delete(candidate);
     }
 

@@ -2,6 +2,8 @@ package com.drivingschool.circuit;
 
 import com.drivingschool.circuit.dto.CircuitResponse;
 import com.drivingschool.circuit.dto.SaveCircuitRequest;
+import com.drivingschool.drivingsession.DrivingSessionRepository;
+import com.drivingschool.drivingsession.DrivingSessionResourceInUseException;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -17,9 +19,11 @@ import java.util.UUID;
 public class CircuitService {
 
     private final CircuitRepository circuitRepository;
+    private final DrivingSessionRepository drivingSessionRepository;
 
-    public CircuitService(CircuitRepository circuitRepository) {
+    public CircuitService(CircuitRepository circuitRepository, DrivingSessionRepository drivingSessionRepository) {
         this.circuitRepository = circuitRepository;
+        this.drivingSessionRepository = drivingSessionRepository;
     }
 
     @Transactional(readOnly = true)
@@ -75,7 +79,9 @@ public class CircuitService {
     public void delete(UUID id) {
         Circuit circuit = circuitRepository.findById(id)
                 .orElseThrow(() -> new CircuitNotFoundException(id));
-        // TODO(Phase 5): refuse deletion if sessions reference this circuit; advise setting active=false.
+        if (drivingSessionRepository.existsByCircuit_Id(id)) {
+            throw new DrivingSessionResourceInUseException("circuit");
+        }
         circuitRepository.delete(circuit);
     }
 

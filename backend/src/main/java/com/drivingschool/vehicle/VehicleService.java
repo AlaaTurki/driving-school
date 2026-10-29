@@ -2,6 +2,8 @@ package com.drivingschool.vehicle;
 
 import com.drivingschool.vehicle.dto.SaveVehicleRequest;
 import com.drivingschool.vehicle.dto.VehicleResponse;
+import com.drivingschool.drivingsession.DrivingSessionRepository;
+import com.drivingschool.drivingsession.DrivingSessionResourceInUseException;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -16,9 +18,11 @@ import java.util.UUID;
 public class VehicleService {
 
     private final VehicleRepository vehicleRepository;
+    private final DrivingSessionRepository drivingSessionRepository;
 
-    public VehicleService(VehicleRepository vehicleRepository) {
+    public VehicleService(VehicleRepository vehicleRepository, DrivingSessionRepository drivingSessionRepository) {
         this.vehicleRepository = vehicleRepository;
+        this.drivingSessionRepository = drivingSessionRepository;
     }
 
     @Transactional(readOnly = true)
@@ -72,7 +76,9 @@ public class VehicleService {
     public void delete(UUID id) {
         Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new VehicleNotFoundException(id));
-        // TODO(Phase 5): refuse deletion if sessions reference this vehicle; advise setting active=false.
+        if (drivingSessionRepository.existsByVehicle_Id(id)) {
+            throw new DrivingSessionResourceInUseException("vehicle");
+        }
         vehicleRepository.delete(vehicle);
     }
 

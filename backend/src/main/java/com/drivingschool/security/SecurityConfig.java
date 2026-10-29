@@ -37,6 +37,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers(HttpMethod.PUT, "/api/candidates/*/skills", "/api/candidates/*/skills/*")
+                        .hasAnyRole("ADMIN", "INSTRUCTOR")
                         .requestMatchers(HttpMethod.GET, "/api/candidates", "/api/candidates/**")
                         .hasAnyRole("ADMIN", "INSTRUCTOR")
                         .requestMatchers("/api/candidates/**").hasRole("ADMIN")
@@ -46,6 +48,15 @@ public class SecurityConfig {
                         .hasRole("ADMIN")
                         .requestMatchers("/api/instructors/me").hasRole("INSTRUCTOR")
                         .requestMatchers("/api/instructors/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/me/skills").hasRole("CANDIDATE")
+                        .requestMatchers("/api/me/skills", "/api/me/skills/**").denyAll()
+                        .requestMatchers("/api/schedule", "/api/schedule/**")
+                        .hasAnyRole("ADMIN", "INSTRUCTOR")
+                        .requestMatchers("/api/me/schedule", "/api/me/schedule/**").hasRole("CANDIDATE")
+                        .requestMatchers("/api/driving-sessions/**").hasAnyRole("ADMIN", "INSTRUCTOR")
+                        .requestMatchers("/api/payments/**").hasRole("ADMIN")
+                        .requestMatchers("/api/me/sessions/**").hasRole("CANDIDATE")
+                        .requestMatchers("/api/me/**").hasRole("CANDIDATE")
                         .requestMatchers(HttpMethod.GET, "/api/me").hasRole("CANDIDATE")
                         .requestMatchers(
                                 "/api/auth/login",

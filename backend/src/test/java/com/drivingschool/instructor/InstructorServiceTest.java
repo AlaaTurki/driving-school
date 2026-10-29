@@ -1,6 +1,8 @@
 package com.drivingschool.instructor;
 
 import com.drivingschool.auth.EmailAlreadyRegisteredException;
+import com.drivingschool.drivingsession.DrivingSessionRepository;
+import com.drivingschool.drivingsession.DrivingSessionResourceInUseException;
 import com.drivingschool.instructor.dto.CreateInstructorRequest;
 import com.drivingschool.instructor.dto.InstructorResponse;
 import com.drivingschool.instructor.dto.UpdateInstructorRequest;
@@ -31,8 +33,9 @@ class InstructorServiceTest {
     private final InstructorRepository instructorRepository = mock(InstructorRepository.class);
     private final UserRepository userRepository = mock(UserRepository.class);
     private final PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
+    private final DrivingSessionRepository drivingSessionRepository = mock(DrivingSessionRepository.class);
     private final InstructorService service =
-            new InstructorService(instructorRepository, userRepository, passwordEncoder);
+            new InstructorService(instructorRepository, userRepository, passwordEncoder, drivingSessionRepository);
 
     @Test
     void createsInstructorAndLinkedLoginWithEncodedPassword() {
@@ -118,6 +121,29 @@ class InstructorServiceTest {
         service.findAll(" name ", InstructorStatus.ACTIVE, pageable);
 
         verify(instructorRepository).search("name", InstructorStatus.ACTIVE, pageable);
+    }
+
+    @Test
+    void refusesToDeleteInstructorReferencedByDrivingSession() {
+        UUID id = UUID.randomUUID();
+        Instructor instructor = new Instructor(
+                new User("instructor@example.com", "hash", Set.of(Role.INSTRUCTOR)),
+                "First",
+                "Last",
+                "123",
+                "instructor@example.com",
+                "LIC-123",
+                InstructorStatus.ACTIVE
+        );
+        org.springframework.test.util.ReflectionTestUtils.setField(instructor, "id", id);
+        when(instructorRepository.findById(id)).thenReturn(Optional.of(instructor));
+        when(drivingSessionRepository.existsByInstructor_Id(id)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.delete(id))
+                .isInstanceOf(DrivingSessionResourceInUseException.class)
+                .hasMessageContaining("deactivate");
+
+        verify(instructorRepository, never()).delete(instructor);
     }
 
     private CreateInstructorRequest createRequest() {

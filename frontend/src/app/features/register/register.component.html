@@ -14,6 +14,8 @@
         <mat-icon matSuffix>person_outline</mat-icon>
         @if (form.controls.fullName.touched && form.controls.fullName.hasError('required')) {
           <mat-error>Votre nom complet est obligatoire.</mat-error>
+        } @else if (form.controls.fullName.hasError('server')) {
+          <mat-error>{{ form.controls.fullName.getError('server') }}</mat-error>
         }
       </mat-form-field>
 
@@ -31,6 +33,8 @@
           <mat-error>L’adresse e-mail est obligatoire.</mat-error>
         } @else if (form.controls.email.touched && form.controls.email.hasError('email')) {
           <mat-error>Entrez une adresse e-mail valide.</mat-error>
+        } @else if (form.controls.email.hasError('server')) {
+          <mat-error>{{ form.controls.email.getError('server') }}</mat-error>
         }
       </mat-form-field>
 
@@ -48,6 +52,8 @@
           <mat-error>Votre numéro de téléphone est obligatoire.</mat-error>
         } @else if (form.controls.phone.touched && form.controls.phone.hasError('pattern')) {
           <mat-error>Entrez un numéro de téléphone valide.</mat-error>
+        } @else if (form.controls.phone.hasError('server')) {
+          <mat-error>{{ form.controls.phone.getError('server') }}</mat-error>
         }
       </mat-form-field>
 
@@ -65,6 +71,8 @@
           <mat-error>Le mot de passe est obligatoire.</mat-error>
         } @else if (form.controls.password.touched && form.controls.password.hasError('minlength')) {
           <mat-error>Le mot de passe doit contenir au moins 8 caractères.</mat-error>
+        } @else if (form.controls.password.hasError('server')) {
+          <mat-error>{{ form.controls.password.getError('server') }}</mat-error>
         }
       </mat-form-field>
 

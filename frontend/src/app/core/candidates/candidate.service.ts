@@ -5,6 +5,7 @@ import {
   Candidate,
   CandidatePage,
   CandidateSearch,
+  SaveCandidateRequest,
   UpdateCandidateRequest,
   UpdateCandidateRolesRequest,
 } from './candidate.models';
@@ -26,11 +27,23 @@ export class CandidateService {
     return this.http.get<CandidatePage>('/api/candidates', { params });
   }
 
+  findById(id: string): Observable<Candidate> {
+    return this.http.get<Candidate>(`/api/candidates/${id}`);
+  }
+
+  create(request: SaveCandidateRequest): Observable<Candidate> {
+    return this.http.post<Candidate>('/api/candidates', request);
+  }
+
   update(id: string, changes: UpdateCandidateRequest): Observable<Candidate> {
     return this.http.put<Candidate>(`/api/candidates/${id}`, changes);
   }
 
   updateRoles(id: string, changes: UpdateCandidateRolesRequest): Observable<Candidate> {
     return this.http.put<Candidate>(`/api/candidates/${id}/roles`, changes);
+  }
+
+  delete(id: string): Observable<void> {
+    return this.http.delete<void>(`/api/candidates/${id}`);
   }
 }

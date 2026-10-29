@@ -1,6 +1,8 @@
 package com.drivingschool.instructor;
 
 import com.drivingschool.auth.EmailAlreadyRegisteredException;
+import com.drivingschool.drivingsession.DrivingSessionRepository;
+import com.drivingschool.drivingsession.DrivingSessionResourceInUseException;
 import com.drivingschool.instructor.dto.CreateInstructorRequest;
 import com.drivingschool.instructor.dto.InstructorResponse;
 import com.drivingschool.instructor.dto.UpdateInstructorRequest;
@@ -27,15 +29,18 @@ public class InstructorService {
     private final InstructorRepository instructorRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final DrivingSessionRepository drivingSessionRepository;
 
     public InstructorService(
             InstructorRepository instructorRepository,
             UserRepository userRepository,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            DrivingSessionRepository drivingSessionRepository
     ) {
         this.instructorRepository = instructorRepository;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.drivingSessionRepository = drivingSessionRepository;
     }
 
     @Transactional
@@ -122,7 +127,9 @@ public class InstructorService {
     public void delete(UUID id) {
         Instructor instructor = instructorRepository.findById(id)
                 .orElseThrow(() -> new InstructorNotFoundException(id));
-        // TODO(Phase 5): refuse deletion when sessions exist and advise setting the instructor to INACTIVE.
+        if (drivingSessionRepository.existsByInstructor_Id(id)) {
+            throw new DrivingSessionResourceInUseException("instructor");
+        }
         User user = instructor.getUser();
         instructorRepository.delete(instructor);
         instructorRepository.flush();

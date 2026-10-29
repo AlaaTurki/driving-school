@@ -82,20 +82,38 @@ class CandidateSecurityMockMvcTest {
                 .andExpect(status().isForbidden());
 
         verify(candidateService, never()).findAll(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
-                org.mockito.ArgumentMatchers.any());
-        verify(candidateService, never()).findById(otherCandidateId);
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+        verify(candidateService, never()).findById(
+                org.mockito.ArgumentMatchers.eq(otherCandidateId),
+                org.mockito.ArgumentMatchers.any()
+        );
     }
 
     @Test
     void instructorCanReadButCannotCreateUpdateOrDeleteCandidates() throws Exception {
+        UUID instructorUserId = UUID.randomUUID();
+        AppUserDetails instructorPrincipal = new AppUserDetails(
+                instructorUserId,
+                "instructor@example.com",
+                "encoded-password",
+                true,
+                List.of(new SimpleGrantedAuthority("ROLE_INSTRUCTOR"))
+        );
         when(candidateService.findAll(
+                org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any()
         )).thenReturn(org.springframework.data.domain.Page.empty());
 
-        mockMvc.perform(get("/api/candidates").with(user("instructor").roles("INSTRUCTOR")))
+        mockMvc.perform(get("/api/candidates").with(user(instructorPrincipal)))
                 .andExpect(status().isOk());
+        verify(candidateService).findAll(
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.eq(instructorUserId)
+        );
 
         String request = """
                 {

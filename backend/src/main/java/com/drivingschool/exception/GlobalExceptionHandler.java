@@ -2,9 +2,18 @@ package com.drivingschool.exception;
 
 import com.drivingschool.auth.EmailAlreadyRegisteredException;
 import com.drivingschool.auth.InvalidRefreshTokenException;
+import com.drivingschool.balance.CandidateFinancialAccessDeniedException;
 import com.drivingschool.candidate.CandidateNotFoundException;
 import com.drivingschool.candidate.CandidateHasNoAccountException;
 import com.drivingschool.candidate.CandidateUserNotFoundException;
+import com.drivingschool.drivingsession.DrivingSessionConflictException;
+import com.drivingschool.drivingsession.DrivingSessionNotFoundException;
+import com.drivingschool.drivingsession.DrivingSessionResourceInUseException;
+import com.drivingschool.drivingsession.InstructorSessionAccessDeniedException;
+import com.drivingschool.drivingsession.InvalidDrivingSessionException;
+import com.drivingschool.drivingsession.SessionStatusConflictException;
+import com.drivingschool.drivingsession.ScheduleConflictException;
+import com.drivingschool.drivingsession.dto.ScheduleConflictResponse;
 import com.drivingschool.common.api.ApiErrorResponse;
 import com.drivingschool.circuit.CircuitNameAlreadyExistsException;
 import com.drivingschool.circuit.CircuitNotFoundException;
@@ -12,6 +21,12 @@ import com.drivingschool.circuit.InvalidCircuitPriceException;
 import com.drivingschool.instructor.InstructorLicenseAlreadyRegisteredException;
 import com.drivingschool.instructor.InstructorNotFoundException;
 import com.drivingschool.instructor.InvalidInstructorPasswordException;
+import com.drivingschool.payment.InvalidPaymentException;
+import com.drivingschool.payment.PaymentNotFoundException;
+import com.drivingschool.payment.PaymentResourceInUseException;
+import com.drivingschool.skills.InstructorSkillsAccessDeniedException;
+import com.drivingschool.skills.InvalidCandidateSkillsException;
+import com.drivingschool.skills.SkillNotFoundException;
 import com.drivingschool.vehicle.VehicleNotFoundException;
 import com.drivingschool.vehicle.VehicleRegistrationAlreadyExistsException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -139,6 +154,107 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
         return error(HttpStatus.BAD_REQUEST, exception.getMessage(), request, Map.of());
+    }
+
+    @ExceptionHandler({
+            DrivingSessionConflictException.class,
+            DrivingSessionResourceInUseException.class,
+            SessionStatusConflictException.class
+    })
+    public ResponseEntity<ApiErrorResponse> handleDrivingSessionConflict(
+            RuntimeException exception,
+            HttpServletRequest request
+    ) {
+        return error(HttpStatus.CONFLICT, exception.getMessage(), request, Map.of());
+    }
+
+    @ExceptionHandler(ScheduleConflictException.class)
+    public ResponseEntity<ScheduleConflictResponse> handleScheduleConflict(ScheduleConflictException exception) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ScheduleConflictResponse(
+                exception.getMessage(),
+                exception.getResource(),
+                exception.getConflictingSession()
+        ));
+    }
+
+    @ExceptionHandler(DrivingSessionNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleDrivingSessionNotFound(
+            DrivingSessionNotFoundException exception,
+            HttpServletRequest request
+    ) {
+        return error(HttpStatus.NOT_FOUND, exception.getMessage(), request, Map.of());
+    }
+
+    @ExceptionHandler(InstructorSessionAccessDeniedException.class)
+    public ResponseEntity<ApiErrorResponse> handleInstructorSessionAccessDenied(
+            InstructorSessionAccessDeniedException exception,
+            HttpServletRequest request
+    ) {
+        return error(HttpStatus.FORBIDDEN, exception.getMessage(), request, Map.of());
+    }
+
+    @ExceptionHandler(InvalidDrivingSessionException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidDrivingSession(
+            InvalidDrivingSessionException exception,
+            HttpServletRequest request
+    ) {
+        return error(HttpStatus.BAD_REQUEST, exception.getMessage(), request, Map.of());
+    }
+
+    @ExceptionHandler(PaymentNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handlePaymentNotFound(
+            PaymentNotFoundException exception,
+            HttpServletRequest request
+    ) {
+        return error(HttpStatus.NOT_FOUND, exception.getMessage(), request, Map.of());
+    }
+
+    @ExceptionHandler(InvalidPaymentException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidPayment(
+            InvalidPaymentException exception,
+            HttpServletRequest request
+    ) {
+        return error(HttpStatus.BAD_REQUEST, exception.getMessage(), request, Map.of());
+    }
+
+    @ExceptionHandler(CandidateFinancialAccessDeniedException.class)
+    public ResponseEntity<ApiErrorResponse> handleCandidateFinancialAccessDenied(
+            CandidateFinancialAccessDeniedException exception,
+            HttpServletRequest request
+    ) {
+        return error(HttpStatus.FORBIDDEN, exception.getMessage(), request, Map.of());
+    }
+
+    @ExceptionHandler(InstructorSkillsAccessDeniedException.class)
+    public ResponseEntity<ApiErrorResponse> handleInstructorSkillsAccessDenied(
+            InstructorSkillsAccessDeniedException exception,
+            HttpServletRequest request
+    ) {
+        return error(HttpStatus.FORBIDDEN, exception.getMessage(), request, Map.of());
+    }
+
+    @ExceptionHandler(SkillNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleSkillNotFound(
+            SkillNotFoundException exception,
+            HttpServletRequest request
+    ) {
+        return error(HttpStatus.NOT_FOUND, exception.getMessage(), request, Map.of());
+    }
+
+    @ExceptionHandler(InvalidCandidateSkillsException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidCandidateSkills(
+            InvalidCandidateSkillsException exception,
+            HttpServletRequest request
+    ) {
+        return error(HttpStatus.BAD_REQUEST, exception.getMessage(), request, Map.of());
+    }
+
+    @ExceptionHandler(PaymentResourceInUseException.class)
+    public ResponseEntity<ApiErrorResponse> handlePaymentResourceInUse(
+            PaymentResourceInUseException exception,
+            HttpServletRequest request
+    ) {
+        return error(HttpStatus.CONFLICT, exception.getMessage(), request, Map.of());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

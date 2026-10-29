@@ -20,10 +20,15 @@ public interface CandidateRepository extends JpaRepository<Candidate, UUID> {
                    or lower(concat(candidate.firstName, ' ', candidate.lastName)) like lower(concat('%', :search, '%'))
                    or lower(candidate.email) like lower(concat('%', :search, '%'))
                    or lower(candidate.phone) like lower(concat('%', :search, '%')))
+              and (:instructorUserId is null or exists (
+                    select session.id from DrivingSession session
+                    where session.candidate = candidate and session.instructor.user.id = :instructorUserId
+              ))
             """)
     Page<Candidate> search(
             @Param("search") String search,
             @Param("status") CandidateStatus status,
+            @Param("instructorUserId") UUID instructorUserId,
             Pageable pageable
     );
 

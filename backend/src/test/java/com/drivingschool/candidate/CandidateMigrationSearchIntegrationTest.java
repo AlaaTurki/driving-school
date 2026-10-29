@@ -74,12 +74,12 @@ class CandidateMigrationSearchIntegrationTest {
     void searchesByNameEmailAndPhoneAndFiltersByStatusWithPagination() {
         var pageable = PageRequest.of(0, 1, Sort.by("lastName").ascending());
 
-        var allCandidates = candidateService.findAll(null, null, pageable);
-        var nameMatch = candidateService.findAll("legacy candidate", null, pageable);
-        var emailMatch = candidateService.findAll("SOPHIE.LEGACY@", null, pageable);
-        var phoneMatch = candidateService.findAll("12345678", null, pageable);
-        var activeMatch = candidateService.findAll("Sophie", CandidateStatus.ACTIVE, pageable);
-        var inactiveMatch = candidateService.findAll("Sophie", CandidateStatus.INACTIVE, pageable);
+        var allCandidates = candidateService.findAll(null, null, pageable, null);
+        var nameMatch = candidateService.findAll("legacy candidate", null, pageable, null);
+        var emailMatch = candidateService.findAll("SOPHIE.LEGACY@", null, pageable, null);
+        var phoneMatch = candidateService.findAll("12345678", null, pageable, null);
+        var activeMatch = candidateService.findAll("Sophie", CandidateStatus.ACTIVE, pageable, null);
+        var inactiveMatch = candidateService.findAll("Sophie", CandidateStatus.INACTIVE, pageable, null);
 
         assertThat(allCandidates.getTotalElements()).isEqualTo(2);
         assertThat(nameMatch.getTotalElements()).isEqualTo(1);

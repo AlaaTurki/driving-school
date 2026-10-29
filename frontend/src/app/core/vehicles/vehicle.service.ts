@@ -21,4 +21,12 @@ export class VehicleService {
   create(request: SaveVehicleRequest): Observable<Vehicle> {
     return this.http.post<Vehicle>('/api/vehicles', request);
   }
+
+  update(id: string, request: SaveVehicleRequest): Observable<Vehicle> {
+    return this.http.put<Vehicle>(`/api/vehicles/${id}`, request);
+  }
+
+  delete(id: string): Observable<void> {
+    return this.http.delete<void>(`/api/vehicles/${id}`);
+  }
 }

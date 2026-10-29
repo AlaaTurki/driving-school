@@ -47,6 +47,8 @@ export interface UpdateCandidateRequest {
   userId: string | null;
 }
 
+export type SaveCandidateRequest = UpdateCandidateRequest;
+
 export type UserRole = 'ADMIN' | 'INSTRUCTOR' | 'CANDIDATE';
 
 export interface UpdateCandidateRolesRequest {
