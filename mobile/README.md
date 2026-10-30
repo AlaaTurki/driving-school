@@ -1,19 +1,24 @@
-# Application mobile candidat
+# Application mobile Flutter
 
-Application Flutter en Dart avec null safety. L'état d'authentification est géré par Riverpod (`StateNotifier`) ; go_router protège les routes et réagit aux changements de session. Dio centralise les appels API et le renouvellement des tokens.
+Application Flutter en Dart destinée aux candidats. Elle utilise Riverpod pour l'état d'authentification, `go_router` pour la navigation protégée et Dio pour les appels à l'API.
 
-## Configuration et lancement
+## Prérequis
 
-Depuis `mobile/`, définir une URL locale puis lancer Flutter :
+- Flutter installé.
+- API backend disponible.
+
+`API_BASE_URL` est obligatoire et aucune URL de production n'est intégrée à l'application. Depuis `mobile/`, installez les dépendances puis lancez l'application en définissant l'adresse de l'API :
 
 ```powershell
 flutter pub get
-flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8081
 ```
 
-`API_BASE_URL` est obligatoire et n'a aucune valeur de production intégrée. Sur l'émulateur Android, `localhost` pointe vers l'émulateur lui-même : utiliser `10.0.2.2` pour joindre le serveur local de l'ordinateur. Sur iOS Simulator, une API locale peut généralement être jointe avec `http://localhost:8080`.
+Cette URL convient à un émulateur Android lorsque l'API est lancée avec Docker Compose, qui publie l'API sur le port hôte `8081`. L'émulateur Android utilise `10.0.2.2` pour joindre l'hôte. Pour iOS Simulator, utilisez généralement `http://localhost:8081`. Si l'API est lancée directement avec Maven, son port par défaut est `8080` ; adaptez l'URL en conséquence.
 
-Les tokens d'accès et de renouvellement sont stockés avec `flutter_secure_storage`. L'application renouvelle le couple de tokens au démarrage, partage un seul renouvellement lorsque plusieurs requêtes reçoivent simultanément un 401, puis rejoue ces requêtes. En cas d'échec, la session locale est effacée. Seuls les comptes ayant le rôle `CANDIDATE` peuvent accéder à l'espace authentifié.
+## Authentification et stockage
+
+Les jetons d'accès et de renouvellement sont conservés avec `flutter_secure_storage`. Au démarrage, l'application renouvelle la session ; les renouvellements simultanés sont partagés et les requêtes refusées avec un statut `401` sont rejouées après renouvellement. Si le renouvellement échoue, la session locale est effacée. Seuls les comptes ayant le rôle `CANDIDATE` peuvent accéder à l'espace authentifié.
 
 ## Tests
 
@@ -21,11 +26,18 @@ Les tokens d'accès et de renouvellement sont stockés avec `flutter_secure_stor
 flutter test
 ```
 
-## Configuration native à générer/valider
+## Plateformes natives
 
-Le SDK Flutter n'était pas disponible lors de la création de ce socle : les dossiers natifs `android/` et `ios/` n'ont pas encore été générés. Après validation, exécuter `flutter create --platforms=android,ios --org com.drivingschool .` depuis ce dossier, puis vérifier :
+Les dossiers natifs `android/` et `ios/` ne sont pas encore présents dans ce dépôt. Le SDK Flutter n'était pas disponible lors de la création du socle. Après validation, générez-les depuis `mobile/` :
 
-- Android : `applicationId` et `namespace` `com.drivingschool.mobile`, package de `MainActivity`, nom/identifiant de l'application, permission réseau et configuration `flutter_secure_storage` pour les versions Android ciblées.
-- iOS : Bundle Identifier `com.drivingschool.mobile`, cible de déploiement, Keychain pour `flutter_secure_storage` et règles ATS adaptées à l'API locale HTTP (ne pas assouplir ATS en production).
+```powershell
+flutter create --platforms=android,ios --org com.drivingschool .
+```
 
-La génération native et la configuration des plateformes restent en attente de validation.
+Vérifiez ensuite les identifiants `com.drivingschool.mobile`, la configuration de `flutter_secure_storage` et les paramètres réseau propres à chaque plateforme. Pour iOS, n'assouplissez pas App Transport Security en production ; pour Android, vérifiez l'accès réseau et les exigences de la version cible.
+
+## Documentation associée
+
+- [README principal](../README.md)
+- [API backend](../backend/README.md)
+- [Frontend Angular](../frontend/README.md)
