@@ -41,6 +41,7 @@ interface PaymentDraft {
     MatIconModule,
     MatProgressSpinnerModule,
   ],
+  providers: [DtCurrencyPipe],
   templateUrl: './payments.component.html',
   styleUrl: './payments.component.scss',
 })
@@ -78,6 +79,7 @@ export class PaymentsComponent {
     private readonly authService: AuthService,
     private readonly candidateService: CandidateService,
     private readonly financialService: FinancialService,
+    private readonly dtCurrencyPipe: DtCurrencyPipe,
     private readonly route: ActivatedRoute,
     private readonly router: Router,
   ) {
@@ -295,7 +297,7 @@ export class PaymentsComponent {
   }
 
   formatAmount(amount: number): string {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'TND', minimumFractionDigits: 3 }).format(amount);
+    return this.dtCurrencyPipe.transform(amount);
   }
 
   private resetPaymentForm(): void {
