@@ -20,6 +20,13 @@ Cette URL convient à un émulateur Android lorsque l'API est lancée avec Docke
 
 Les jetons d'accès et de renouvellement sont conservés avec `flutter_secure_storage`. Au démarrage, l'application renouvelle la session ; les renouvellements simultanés sont partagés et les requêtes refusées avec un statut `401` sont rejouées après renouvellement. Si le renouvellement échoue, la session locale est effacée. Seuls les comptes ayant le rôle `CANDIDATE` peuvent accéder à l'espace authentifié.
 
+## Espace candidat
+
+Les écrans en lecture seule utilisent exclusivement les routes `/api/me/...` : profil,
+solde, séances, paiements, relevé, planning et compétences. Les montants sont conservés
+en millièmes entiers pour leur affichage, sans calcul financier sur le mobile. Les
+formateurs partagés centralisent l'affichage des montants DT et des dates/horaires.
+
 ## Tests
 
 ```powershell

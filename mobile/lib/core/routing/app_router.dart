@@ -6,6 +6,10 @@ import '../auth/auth_status.dart';
 import '../../features/auth/presentation/auth_controller.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
+import '../../features/candidate/presentation/payments_screen.dart';
+import '../../features/candidate/presentation/schedule_screen.dart';
+import '../../features/candidate/presentation/sessions_screen.dart';
+import '../../features/candidate/presentation/skills_screen.dart';
 import '../../features/home/presentation/candidate_home_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -47,6 +51,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/home',
         builder: (context, state) => const CandidateHomeScreen(),
+      ),
+      GoRoute(
+        path: '/sessions',
+        builder: (context, state) => const CandidateSessionsScreen(),
+      ),
+      GoRoute(
+        path: '/payments',
+        builder: (context, state) => const CandidatePaymentsScreen(),
+      ),
+      GoRoute(
+        path: '/schedule',
+        builder: (context, state) => const CandidateScheduleScreen(),
+      ),
+      GoRoute(
+        path: '/skills',
+        builder: (context, state) => const CandidateSkillsScreen(),
       ),
     ],
   );
