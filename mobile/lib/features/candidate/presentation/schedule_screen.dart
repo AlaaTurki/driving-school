@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/format/date_format.dart';
+import '../../../core/widgets/candidate_page_scaffold.dart';
 import '../data/candidate_data.dart';
 import 'sessions_screen.dart' show sessionStatusLabel;
 
@@ -11,8 +12,8 @@ class CandidateScheduleScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final schedule = ref.watch(candidateScheduleProvider);
-    return Scaffold(
-      appBar: AppBar(title: const Text('Mon planning')),
+    return CandidatePageScaffold(
+      title: 'Mon planning',
       body: schedule.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, __) => _ScheduleError(

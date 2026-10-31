@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/format/date_format.dart';
 import '../../../core/format/money_format.dart';
+import '../../../core/widgets/candidate_page_scaffold.dart';
 import '../data/candidate_data.dart';
 
 enum SessionPeriod { upcoming, history, all }
@@ -32,8 +33,8 @@ class _CandidateSessionsScreenState
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Mes séances')),
+  Widget build(BuildContext context) => CandidatePageScaffold(
+        title: 'Mes séances',
         body: FutureBuilder<CandidatePage<CandidateSession>>(
           future: _firstPage,
           builder: (context, snapshot) {

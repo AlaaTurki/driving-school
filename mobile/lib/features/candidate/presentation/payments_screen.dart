@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/format/date_format.dart';
 import '../../../core/format/money_format.dart';
+import '../../../core/widgets/candidate_page_scaffold.dart';
 import '../data/candidate_data.dart';
 import 'sessions_screen.dart' show sessionStatusLabel;
 
@@ -28,8 +29,8 @@ class _CandidatePaymentsScreenState
   @override
   Widget build(BuildContext context) {
     final payments = ref.watch(paymentsScreenDataProvider);
-    return Scaffold(
-      appBar: AppBar(title: const Text('Mes paiements')),
+    return CandidatePageScaffold(
+      title: 'Mes paiements',
       body: payments.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, __) => _ErrorState(

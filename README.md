@@ -1,78 +1,96 @@
-# Driving School API
+# Driving School
 
-Socle REST Spring Boot 3 / Java 21 : PostgreSQL, Flyway, Spring Security, JWT et authentification. Les rôles sont `ADMIN`, `INSTRUCTOR` et `CANDIDATE`. L'inscription publique crée exclusivement des comptes `CANDIDATE`.
+Application de gestion d'auto-école composée d'une API REST Spring Boot, d'une interface Web Angular et d'une application candidat Flutter. Le backend utilise PostgreSQL, Flyway, Spring Security et JWT.
 
-## Lancer avec Docker Compose
+## Fonctionnalités
 
-1. Copier `.env.example` en `.env`.
-2. Renseigner des valeurs locales fortes pour `DATABASE_PASSWORD` et `JWT_SECRET`. Le secret JWT doit être en Base64 et contenir au moins 32 octets. Par exemple, le générer avec `openssl rand -base64 32`.
-3. Lancer `docker compose up --build`.
+- Gestion des candidats avec les statuts `ACTIVE`, `INACTIVE`, `COMPLETED` et `SUSPENDED`.
+- Gestion des moniteurs, des véhicules et des circuits.
+- Création, consultation et suivi des séances de conduite, avec détection des conflits de réservation.
+- Gestion des paiements, relevés et soldes calculés à partir des séances facturables et des paiements enregistrés.
+- Planning des séances pour l'administration, les moniteurs et les candidats.
+- Tableaux de bord pour l'administration et les moniteurs.
+- Suivi de la progression des candidats sur neuf compétences.
+- Authentification par jetons et contrôle d'accès selon les rôles `ADMIN`, `INSTRUCTOR` et `CANDIDATE`.
 
-Compose configure l'API pour joindre PostgreSQL via le nom de service `postgres` sur le réseau Docker. Le port `15432` de la machine hôte est publié vers le port PostgreSQL `5432` du conteneur afin d'éviter les conflits avec d'autres serveurs PostgreSQL locaux. Ne configurez pas `DATABASE_URL=localhost` pour l'API conteneurisée : `localhost` désignerait le conteneur API lui-même. Flyway crée les tables au démarrage de l'API. La documentation Swagger est disponible sur `http://localhost:8080/swagger-ui.html`.
+L'inscription publique crée uniquement des comptes `CANDIDATE`. Les moniteurs sont créés par l'administration.
 
-Pour créer le tout premier administrateur, renseigner dans `.env` :
+## Endpoints principaux
 
-```dotenv
-BOOTSTRAP_ADMIN_ENABLED=true
-BOOTSTRAP_ADMIN_EMAIL=admin@example.com
-BOOTSTRAP_ADMIN_PASSWORD=une-phrase-de-passe-locale-longue
+Les routes ci-dessous sont définies par les contrôleurs Spring. Les appels métier nécessitent un jeton Bearer, sauf les routes d'authentification.
+
+| Rôle | Endpoints principaux |
+|---|---|
+| Public / authentification | `POST /api/auth/login`, `POST /api/auth/register`, `POST /api/auth/refresh`, `POST /api/auth/logout` |
+| `ADMIN` | `GET /api/dashboard`; gestion des candidats via `/api/candidates` (création, modification, suppression et rôles inclus); gestion des moniteurs via `/api/instructors`; gestion des véhicules et circuits via `/api/vehicles` et `/api/circuits`; gestion des séances via `/api/driving-sessions` (suppression réservée à l'administration); gestion des paiements via `/api/payments` |
+| `INSTRUCTOR` | `GET /api/dashboard/instructor`, `GET /api/instructors/me`; consultation des candidats, véhicules et circuits; gestion et consultation des séances via `/api/driving-sessions`; consultation du planning via `/api/schedule`; accès aux soldes, paiements, relevés et compétences des candidats auxquels le moniteur est autorisé |
+| `CANDIDATE` | Profil `GET /api/me`; séances `GET /api/me/sessions`; solde `GET /api/me/balance`; paiements `GET /api/me/payments`; relevé `GET /api/me/statement`; planning `GET /api/me/schedule`; progression `GET /api/me/skills` |
+| `ADMIN` et `INSTRUCTOR` | Consultation des candidats, véhicules, circuits et planning (`GET /api/candidates`, `/api/vehicles`, `/api/circuits`, `/api/schedule`); disponibilité `GET /api/schedule/availability`; consultation et mise à jour des compétences via `/api/candidates/{candidateId}/skills`; endpoints financiers par candidat sous `/api/candidates/{candidateId}` avec contrôle d'accès du service |
+
+Les endpoints `/api/me/...` déterminent l'identité à partir du compte authentifié. Les routes de gestion et de consultation pour une autre personne utilisent un identifiant dans le chemin selon leur contrôleur.
+
+## Règles métier principales
+
+- Seules les séances au statut `DONE` ou `ABSENT` sont facturables.
+- Le solde est calculé par le backend à partir des séances facturables et des paiements ; il n'est jamais saisi comme une valeur indépendante.
+- Les conflits de réservation impliquant un moniteur, un véhicule ou un candidat sont refusés avec HTTP `409 Conflict`. La réponse de conflit de planning peut inclure la ressource et la séance en conflit.
+
+## Lancement en développement
+
+### Docker Compose
+
+Depuis la racine, configurez localement les variables requises dans `.env` à partir de `.env.example`, puis lancez :
+
+```powershell
+docker compose up --build
 ```
 
-Redémarrer l'API une seule fois. La création échoue si un rôle `ADMIN` existe déjà ou si le mot de passe contient moins de 12 caractères. Ensuite, désactiver immédiatement `BOOTSTRAP_ADMIN_ENABLED`. Ces identifiants ne doivent pas être conservés dans les secrets d'un environnement partagé après initialisation.
+Compose démarre PostgreSQL et l'API. L'API est accessible sur `http://localhost:8081` (port conteneur `8080`) et PostgreSQL sur `localhost:15432`. Les migrations Flyway sont appliquées au démarrage. Swagger est disponible sur `http://localhost:8081/swagger-ui.html`.
 
-## Lancer sans Docker pour l'API
+Pour créer le premier administrateur, configurez localement `BOOTSTRAP_ADMIN_ENABLED`, `BOOTSTRAP_ADMIN_EMAIL` et `BOOTSTRAP_ADMIN_PASSWORD` dans `.env`, puis redémarrez l'API. Désactivez ensuite l'initialisation (`BOOTSTRAP_ADMIN_ENABLED=false`). L'inscription publique reste réservée aux candidats.
 
-Avec PostgreSQL disponible localement et Java 21/Maven installés, depuis la racine du projet :
+### API avec Maven
+
+Java 21, Maven et PostgreSQL doivent être disponibles. Configurez localement `DATABASE_PASSWORD` et `JWT_SECRET` ; les paramètres par défaut de la base pointent vers PostgreSQL sur `127.0.0.1:15432`. Puis :
 
 ```powershell
 Set-Location backend
-$env:DATABASE_URL = "jdbc:postgresql://127.0.0.1:15432/driving_school"
-$env:DATABASE_USERNAME = "driving_school"
-$env:DATABASE_PASSWORD = "votre-mot-de-passe-local"
-$env:JWT_SECRET = (openssl rand -base64 32)
 mvn spring-boot:run
 ```
 
-Tests unitaires et intégration :
+L'API est accessible sur `http://localhost:8080`. Pour les tests : `mvn test` depuis `backend/`. Les tests d'intégration PostgreSQL nécessitent Docker pour Testcontainers.
+
+### Frontend Angular
+
+Après démarrage de l'API, depuis `frontend/` :
 
 ```powershell
-Set-Location backend
-mvn test
-```
-
-Le scénario `AuthFlowIntegrationTest` crée une base PostgreSQL avec Testcontainers ; Docker doit être disponible pour l'exécuter.
-
-## Application Web Angular
-
-L'application Angular d'administration et des moniteurs se trouve dans `frontend`. Après avoir démarré l'API et PostgreSQL, lancer dans un autre terminal depuis la racine du projet :
-
-```powershell
-Set-Location frontend
-npm install
+npm ci
 npm start
 ```
 
-Ouvrir `http://localhost:4200`. Le proxy Angular transmet `/api` à `http://localhost:8080`. Le frontend comprend la connexion JWT, l'inscription des candidats, la gestion des profils candidats par les administrateurs et moniteurs, ainsi qu'un tableau d'accueil. Le module Candidats permet de rechercher les inscrits, filtrer leur statut actif/inactif et modifier leur nom, téléphone ou statut.
+L'application est accessible sur `http://localhost:4200`. Le proxy de développement cible l'API locale sur le port `8080` ; adaptez `frontend/proxy.conf.json` si l'API tourne via Compose sur le port `8081`.
 
-## Tester la connexion
+### Application mobile Flutter
 
-Dans Swagger, ouvrez `POST /api/auth/login`, choisissez **Try it out**, puis envoyez :
+Flutter installé, depuis `mobile/` :
 
-```json
-{
-  "email": "admin@example.com",
-  "password": "votre-mot-de-passe-local"
-}
+```powershell
+flutter pub get
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8081
 ```
 
-Pour créer un compte candidat, utilisez `POST /api/auth/register` avec un nom complet, une adresse e-mail, un numéro de téléphone et un mot de passe d'au moins 8 caractères. Une inscription réussie crée le compte et renvoie directement une session avec un jeton d'accès de 15 minutes et un refresh token de 7 jours. `POST /api/auth/refresh` échange un refresh token contre une nouvelle paire de jetons et invalide l'ancien. `POST /api/auth/logout` révoque le refresh token transmis.
+`10.0.2.2` permet à l'émulateur Android de joindre l'hôte. Pour iOS Simulator, utilisez généralement `http://localhost:8081`. Si l'API est lancée avec Maven, utilisez le port `8080`. L'URL est configurée par `API_BASE_URL` et n'est pas intégrée en dur à l'application.
 
-L'API `GET /api/candidates` liste les profils candidats et `PUT /api/candidates/{id}` met à jour le nom complet, le téléphone et le statut (`ACTIVE` ou `INACTIVE`). Désactiver un compte candidat empêche sa connexion. Ces routes sont réservées aux rôles `ADMIN` et `INSTRUCTOR`. Les nouvelles inscriptions demandent le nom complet, l'e-mail, le téléphone et un mot de passe ; la migration Flyway ajoute les profils et reprend les anciens comptes candidats.
+## Limites connues
 
-Postman peut envoyer la même requête en `POST http://localhost:8080/api/auth/login`, avec `Content-Type: application/json`. Une connexion valide renvoie un `accessToken`, un `refreshToken`, le type `Bearer`, l'expiration, l'identifiant utilisateur et ses rôles. Stocker le refresh token de façon sécurisée côté client ; seul son hash est conservé en base.
+- Les notifications Firebase ne sont pas implémentées.
+- La CI n'est pas configurée.
+- Une configuration Docker destinée à la production n'est pas fournie.
+- Le déploiement n'est pas mis en place.
 
-Les erreurs de validation renvoient un JSON structuré avec le statut, le chemin et les champs invalides. Un email ou mot de passe incorrect renvoie `401`.
-<<<<<<< HEAD
+## Documentation des composants
 
-=======
->>>>>>> a477368 (feat(sessions): driving sessions, schedule and conflict protection)
+- [API backend](backend/README.md)
+- [Frontend Angular](frontend/README.md)
+- [Application mobile Flutter](mobile/README.md)

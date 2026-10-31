@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/widgets/candidate_page_scaffold.dart';
 import '../data/candidate_data.dart';
 
 class CandidateSkillsScreen extends ConsumerWidget {
@@ -9,8 +10,8 @@ class CandidateSkillsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final skills = ref.watch(candidateSkillsProvider);
-    return Scaffold(
-      appBar: AppBar(title: const Text('Ma progression')),
+    return CandidatePageScaffold(
+      title: 'Ma progression',
       body: skills.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, __) => _SkillsError(

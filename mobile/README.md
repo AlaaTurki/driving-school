@@ -35,13 +35,9 @@ flutter test
 
 ## Plateformes natives
 
-Les dossiers natifs `android/` et `ios/` ne sont pas encore présents dans ce dépôt. Le SDK Flutter n'était pas disponible lors de la création du socle. Après validation, générez-les depuis `mobile/` :
+Les projets natifs `android/` et `ios/` sont présents. L'identifiant de l'application est `com.drivingschool.mobile` sur Android et iOS. Android autorise le trafic HTTP en clair uniquement dans le manifeste de débogage ; les builds de production doivent utiliser HTTPS. iOS conserve les paramètres App Transport Security par défaut : ne les assouplissez pas.
 
-```powershell
-flutter create --platforms=android,ios --org com.drivingschool .
-```
-
-Vérifiez ensuite les identifiants `com.drivingschool.mobile`, la configuration de `flutter_secure_storage` et les paramètres réseau propres à chaque plateforme. Pour iOS, n'assouplissez pas App Transport Security en production ; pour Android, vérifiez l'accès réseau et les exigences de la version cible.
+Les builds Android release utilisent encore la signature debug (`signingConfig = signingConfigs.getByName("debug")`). Configurez une signature de release avant toute publication.
 
 ## Documentation associée
 

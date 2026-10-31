@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/auth/auth_status.dart';
+import '../../../core/widgets/candidate_page_scaffold.dart';
 import 'auth_controller.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -43,8 +44,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
-    return Scaffold(
-      appBar: AppBar(title: const Text('Créer un compte')),
+    return CandidatePageScaffold(
+      title: 'Créer un compte',
+      fallbackLocation: '/login',
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
